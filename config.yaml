@@ -1,0 +1,27 @@
+# model: "THUDM/CogVideoX1.5-5b-I2V"
+model: "NimVideo/cogvideox-2b-img2vid"
+# hyper params
+gradient_accumulation_steps: 8
+ngpu: 1
+devices: "0,1,2,3"
+batch_size: 1
+gradient_clip_val: 1.0
+teacher_timesteps: 50
+student_timesteps: 1
+tmax: 800
+num_steps: 100
+sigma_init: 2.5
+guidance_scale: 7
+
+height: 240
+width: 360
+fps: 16
+num_frames: 24
+
+generator_lr: 0.00001
+student_lr: 0.00001
+
+lora:
+    r: 64
+    lora_alpha: 32
+    target_modules: ["to_q", "to_k", "to_v"]
