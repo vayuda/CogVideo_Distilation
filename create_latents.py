@@ -74,3 +74,19 @@ latents, image_latents = pipe.prepare_latents(
         )
 torch.save(latents, "horse_riding_latents.pt")
 torch.save(image_latents, "horse_riding_image_latents.pt")
+
+
+def encode_prompt(prompt, tokenizer, text_encoder, device):
+    prompt_token_ids = tokenizer(
+                prompt,
+                padding="max_length",
+                max_length=226,
+                truncation=True,
+                add_special_tokens=True,
+                return_tensors="pt",
+            ).to(device)
+    prompt_token_ids = prompt_token_ids.input_ids
+    prompt_embedding = text_encoder(prompt_token_ids)[0]
+    return prompt_embedding
+
+def encode_image(image_path, pipe, device):
