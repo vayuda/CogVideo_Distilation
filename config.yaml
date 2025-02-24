@@ -1,7 +1,7 @@
 # model: "THUDM/CogVideoX1.5-5b-I2V"
 model: "NimVideo/cogvideox-2b-img2vid"
 # hyper params
-gradient_accumulation_steps: 32
+gradient_accumulation_steps: 16
 ngpu: 1
 devices: "0,1,2,3"
 batch_size: 2
@@ -10,7 +10,7 @@ gradient_clip_val: 1.0
 teacher_timesteps: 50
 student_timesteps: 1
 tmax: 800
-num_steps: 100
+num_steps: 5
 sigma_init: 2.5
 guidance_scale: 7
 
@@ -26,3 +26,8 @@ lora:
     r: 32
     lora_alpha: 16
     target_modules: ["to_q", "to_k", "to_v"]
+
+use_wandb: false
+wandb_project: "cogvideo-distillation"
+wandb_run_name: "test"
+log_every: 1 # Log every N steps
