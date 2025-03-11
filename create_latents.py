@@ -6,23 +6,7 @@
 # from diffusers import CogVideoXImageToVideoPipeline
 # from diffusers.utils import export_to_video, load_image
 # import torch
-# batch_size = 1
-# num_frames = 49
-# image_size = (720, 480)
-# sigma_init = 2.5
-# with open("prompt.txt", "r") as f:
-#     prompt = f.read().strip()
 
-# image = load_image("horse.png")
-
-# with torch.no_grad():
-#     pipe = CogVideoXImageToVideoPipeline.from_pretrained("THUDM/CogVideoX-5b-I2V", torch_dtype=torch.bfloat16)
-#     pipe.to("cuda")
-#     video = pipe(image,
-#         prompt = prompt,
-#         num_frames=num_frames,
-#     )
-#     export_to_video(video.frames[0], "test.mp4", fps=16)
 
 
 # Encode example video image and text

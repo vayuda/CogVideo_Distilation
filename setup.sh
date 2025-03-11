@@ -4,17 +4,15 @@ conda activate cogvideo
 
 # Install CUDA toolkit first (change to your version as needed)
 conda install -c conda-forge cudatoolkit=12.4
+conda install pytorch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 pytorch-cuda=12.4 -c pytorch -c nvidia
 
-# Install PyTorch ecosystem via pip (for 2.6+)
-pip install torch torchvision torchaudio
 
 # Rest of dependencies
-pip install deepspeed
-pip install transformers
-pip install diffusers
-pip install lightning
-pip install peft
-pip install wandb
-pip install PyYAML
-pip install numpy
-pip install Pillow
+conda install transformers
+conda install diffusers
+conda install lightning
+conda install peft
+conda install wandb
+conda install PyYAML
+conda install numpy
+conda install opencv-python

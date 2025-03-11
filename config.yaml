@@ -1,23 +1,22 @@
-# model: "THUDM/CogVideoX1.5-5b-I2V"
-model: "NimVideo/cogvideox-2b-img2vid"
+# model: "THUDM/CogVideoX-5b-I2V"
+model: "THUDM/CogVideoX-2b"
 # hyper params
-gradient_accumulation_steps: 16
-ngpu: 1
-devices: "0,1,2,3"
-batch_size: 2
+gradient_accumulation_steps: 1
+batch_size: 1
 dataset_size: 1000
 gradient_clip_val: 1.0
-teacher_timesteps: 50
+teacher_timesteps: 1
 student_timesteps: 1
-tmax: 800
+tmax: 1000
 num_steps: 5
+student_gen_train_ratio: 5
 sigma_init: 2.5
 guidance_scale: 7
 
 height: 480
 width: 720
-fps: 16
-num_frames: 48
+fps: 8
+num_frames: 49
 
 generator_lr: 0.00001
 student_lr: 0.00001
@@ -27,7 +26,8 @@ lora:
     lora_alpha: 16
     target_modules: ["to_q", "to_k", "to_v"]
 
-use_wandb: false
-wandb_project: "cogvideo-distillation"
-wandb_run_name: "test"
-log_every: 1 # Log every N steps
+use_wandb: True
+wandb_project: "CogVideoX-SiD-Distillation"
+wandb_run_name: "test-1"
+wandb_entity: "SiD_pawan"
+# ckpt_save_path: "checkpoints/"
