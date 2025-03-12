@@ -298,14 +298,14 @@ class VideoTrainer:
         with torch.set_grad_enabled(not is_training_student):
             noise_pred_uncond = self.engine(
                 hidden_states=latent_model_input, # [1,13,16,60,90]
-                encoder_hidden_states=positive_prompt,
+                encoder_hidden_states=negative_prompt,
                 ofs=ofs_emb,
                 timestep=generator_timestep,
                 return_dict=False,
             )[0]
             noise_pred_text = self.engine(
                 hidden_states=latent_model_input, # [1,13,16,60,90]
-                encoder_hidden_states=negative_prompt,
+                encoder_hidden_states=positive_prompt,
                 ofs=ofs_emb,
                 timestep=generator_timestep,
                 return_dict=False,
@@ -323,7 +323,7 @@ class VideoTrainer:
         with torch.inference_mode():
             teacher_score_uncond = self.engine(
                 hidden_states=xt,
-                encoder_hidden_states=positive_prompt,
+                encoder_hidden_states=negative_prompt,
                 timestep=timesteps,
                 ofs=ofs_emb,
                 return_dict=False,
@@ -344,7 +344,7 @@ class VideoTrainer:
         with torch.set_grad_enabled(is_training_student):
             student_score_uncond = self.engine(
                 hidden_states=xt,
-                encoder_hidden_states=positive_prompt,
+                encoder_hidden_states=negative_prompt,
                 timestep=timesteps,
                 ofs=ofs_emb,
                 return_dict=False,
@@ -352,7 +352,7 @@ class VideoTrainer:
             self.mem("student fwd1")
             student_score_text = self.engine(
                 hidden_states=xt,
-                encoder_hidden_states=negative_prompt,
+                encoder_hidden_states=positive_prompt,
                 timestep=timesteps,
                 ofs=ofs_emb,
                 return_dict=False,
@@ -443,14 +443,14 @@ class VideoTrainer:
             self.dit.set_adapter("generator")
             noise_pred_uncond = self.engine(
                 hidden_states=latent_model_input, # [1,13,16,60,90]
-                encoder_hidden_states=positive_prompt,
+                encoder_hidden_states=negative_prompt,
                 ofs=ofs_emb,
                 timestep=generator_timestep,
                 return_dict=False,
             )[0]
             noise_pred_text = self.engine(
                 hidden_states=latent_model_input, # [1,13,16,60,90]
-                encoder_hidden_states=negative_prompt,
+                encoder_hidden_states=positive_prompt,
                 ofs=ofs_emb,
                 timestep=generator_timestep,
                 return_dict=False,
