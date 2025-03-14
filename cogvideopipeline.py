@@ -177,8 +177,8 @@ class CogVideoXPipeline():
                 max_size=(base_size_height, base_size_width),
                 device=self.device,
             )
-
         return freqs_cos, freqs_sin
+
     def denoise_one_step(self, latent, prompt_embeds, t, image_latent=None, image_rotary_embeds=None):
         assert self.dit is not None, "dit is not initialized"
         latent = self.scheduler.scale_model_input(latent, t)
@@ -198,7 +198,6 @@ class CogVideoXPipeline():
 
 
         self.mem("before inference")
-        print(latent_model_input.shape)
         with torch.inference_mode():
             noise_pred = self.dit(
                 hidden_states=latent_model_input,
@@ -208,7 +207,7 @@ class CogVideoXPipeline():
                 ofs=ofs_emb,
                 return_dict=False,
             )[0]
-            self.mem("after inference")
+            # self.mem("after inference", print_=True)
         noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
         noise_pred = noise_pred_uncond + self.guidance_scale * (noise_pred_text - noise_pred_uncond)
 
@@ -223,7 +222,7 @@ class CogVideoXPipeline():
             latent = self.denoise_one_step(latent, prompt_embeds, t, image_latent, image_rotary_embeds)
         return latent
 
-    def export_video_from_latent(self, latents, video_fp, denoising_steps=50):
+    def export_video_from_latent(self, latents, video_fp):
         assert self.vae is not None, "VAE model is not initialized"
         latents = latents.permute(0, 2, 1, 3, 4)  # [batch_size, num_channels, num_frames, height, width]
         latents = 1 / self.vae.config.scaling_factor * latents
@@ -238,6 +237,7 @@ class CogVideoXPipeline():
         video_fp: str,
         image_paths: Optional[List[str]] = None,
         negative_prompts: Optional[List[str]] = None,
+        denoising_steps = 50
     ):
         if negative_prompts is not None:
             assert len(negative_prompts) == len(prompts), "Number of negative prompts must match number of prompts"
@@ -251,25 +251,32 @@ class CogVideoXPipeline():
         self.mem("before unload")
         self.unload("text_encoder")
         self.mem("after unload")
-        latent = self.generate(len(prompts), prompt_embeds, image_paths=image_paths)
+        latent = self.generate(len(prompts), prompt_embeds, image_paths=image_paths, denoising_steps=denoising_steps)
 
         self.export_video_from_latent(latent, video_fp)
 
 
 if __name__ == "__main__":
     torch.set_grad_enabled(False)
-    pipeline = CogVideoXPipeline("THUDM/CogVideoX-2b",denoising_steps=50, guidance_scale=7.5)
-    with open("data/prompt.txt", "r") as f:
-        prompt = f.read()
-    with open("data/negative_prompt.txt", "r") as f:
-        negative_prompt = f.read()
+    pipeline = CogVideoXPipeline("THUDM/CogVideoX-2b", guidance_scale=7.5, pipe_dtype=torch.float16)
+
+    latent = torch.load("checkpoints/gen_latents_step_latest.pt")
+    for i in range(latent.shape[0]):
+        pipeline.export_video_from_latent(latent[1].unsqueeze(0), f"samples/epoch{i}.mp4")
+
 
     # pipeline.encode_text([prompt], save_path="data/prompt_embed_2b.pt")
     # pipeline.encode_text([negative_prompt], save_path="data/negative_prompt_embed_2b.pt")
     # pipeline.prepare_latents(1, image_paths=["data/horse.png"], save_path="data/horse_2b_latent.pt")
-    pipeline.full_pipeline(
-        [prompt],
-        "pipeline_reconstruction_5bi2v.mp4",
-        negative_prompts=[negative_prompt],
-        # image_paths=["data/horse.png"]
-    )
+
+    # with open("data/prompt.txt", "r") as f:
+    #     prompt = f.read()
+    # with open("data/negative_prompt.txt", "r") as f:
+    #     negative_prompt = f.read()
+    # pipeline.full_pipeline(
+    #     [prompt],
+    #     "2b-1.mp4",
+    #     negative_prompts=[negative_prompt],
+    #     denoising_steps=1
+    #     # image_paths=["data/horse.png"]
+    # )

@@ -1,5 +1,4 @@
 import copy
-from re import T
 import yaml
 import time
 import wandb
@@ -15,6 +14,15 @@ from diffusers.models.embeddings import get_3d_rotary_pos_embed
 from peft import LoraConfig, get_peft_model
 from torch.utils.checkpoint import checkpoint
 
+def print_tensor_stats(name, tensor):
+    if torch.distributed.get_rank() == 0:
+        print(f"{name} [{tensor.min().item():.3f}, {tensor.max().item():.3f}]  "
+            f"µ: {tensor.mean().item():.3f}, ∑: {tensor.std().item():.3f}")
+        if torch.any(torch.isnan(tensor)):
+            print(f"WARNING: NaN detected in {name}")
+        if torch.any(torch.isinf(tensor)):
+            print(f"WARNING: Inf detected in {name}")
+
 class SiD_Loss(torch.nn.Module):
     def __init__(self):
         super(SiD_Loss, self).__init__()
@@ -28,13 +36,21 @@ class SiD_Loss(torch.nn.Module):
         xt: torch.Tensor,
         sigma_t: torch.Tensor,
         loss_type='student'):
-        nan_mask = torch.isnan(teacher_score) | torch.isnan(student_score) | torch.isnan(xg)
-        if torch.any(nan_mask):
-            not_nan_mask = ~nan_mask
-            teacher_score = teacher_score[not_nan_mask]
-            student_score = student_score[not_nan_mask]
-            xg = xg[not_nan_mask]
-            print("removed nans")
+        # nan_mask = torch.isnan(teacher_score) | torch.isnan(student_score) | torch.isnan(xg)
+        # if torch.any(nan_mask):
+        #     not_nan_mask = ~nan_mask
+        #     teacher_score = teacher_score[not_nan_mask]
+        #     student_score = student_score[not_nan_mask]
+        #     xg = xg[not_nan_mask]
+        #     print("removed nans")
+        teacher_score = teacher_score.to(torch.float32)
+        student_score = student_score.to(torch.float32)
+        xg = xg.to(torch.float32)
+        xt = xt.to(torch.float32)
+        sigma_t = sigma_t.to(torch.float32)
+        # print_tensor_stats("teacher_score", teacher_score)
+        # print_tensor_stats("student_score", student_score)
+        # print_tensor_stats("xg", xg)
 
         # student score loss
         if loss_type == 'student':
@@ -47,7 +63,17 @@ class SiD_Loss(torch.nn.Module):
         else:
             with torch.no_grad():
                 generator_weight = abs(xt - teacher_score).to(torch.float32).mean(dim=[1, 2, 3], keepdim=True).clip(min=0.00001)
-            generator_loss = (teacher_score - student_score) * ((teacher_score - xg) - self.alpha * (teacher_score - student_score)) / generator_weight
+            score_diff = teacher_score - student_score
+            teacher_eval = teacher_score - xg
+            generator_loss = (score_diff) * ((teacher_eval) - self.alpha * (score_diff)) / generator_weight
+            # print_tensor_stats("generator loss", generator_loss)
+            # print_tensor_stats("student teacher diff", score_diff)
+            # print_tensor_stats("generator teacher diff", teacher_eval)
+            wandb.log({
+                "score diff": score_diff,
+                "teacher eval": teacher_eval,
+                "generator weight": generator_weight,
+            })
             generator_loss = generator_loss.mean()
             return generator_loss
 
@@ -87,14 +113,12 @@ class VideoTrainer:
         self.scheduler = CogVideoXDDIMScheduler.from_pretrained(config["model"], subfolder="scheduler")
         self.student_scheduler = copy.deepcopy(self.scheduler)
         self.scheduler.set_timesteps(num_inference_steps=self.teacher_timesteps)  # 50
-        self.student_scheduler.set_timesteps(num_inference_steps=self.student_timesteps)  # 1
+        self.student_scheduler.set_timesteps(num_inference_steps=self.student_timesteps)
 
-        alphas_cumprod = self.student_scheduler.alphas_cumprod
+        alphas_cumprod = self.scheduler.alphas_cumprod
         self.sigmas = ((1 - alphas_cumprod) / alphas_cumprod) ** 0.5
         self.sigmas = self.sigmas.to(device=self.device, dtype=self.training_dtype)
-        distances = torch.abs(self.sigmas - self.sigma_init)
-        self.generator_one_step_time = torch.argmin(distances)
-
+        self.generator_timesteps = self.student_scheduler.timesteps
         # Set up wandb
         if self.config.get("use_wandb", False) and self.is_main_process:
             wandb.init(
@@ -164,45 +188,10 @@ class VideoTrainer:
         ds_config = {
             "fp16": {
                 "enabled": "True",
-                "loss_scale": 0,
-                "loss_scale_window": 1000,
-                "initial_scale_power": 16,
-                "hysteresis": 2,
-                "min_loss_scale": 1
             },
-            "train_batch_size": 2,
+            "train_batch_size": 1,
             "train_micro_batch_size_per_gpu": 1,
             "gradient_accumulation_steps": 1,
-            # "zero_optimization": {
-            #     "stage": 3,
-            #     "offload_param": {
-            #         "device": "cpu",
-            #         "pin_memory": True
-            #     },
-            #     "overlap_comm": True,
-            #     "contiguous_gradients": True,
-            #     "sub_group_size": 1e9,
-            #     "reduce_bucket_size": "auto",
-            #     "stage3_prefetch_bucket_size": "auto",
-            #     "stage3_param_persistence_threshold": "auto",
-            #     "stage3_max_live_parameters": 1e9,
-            #     "stage3_max_reuse_distance": 1e9,
-            #     "stage3_gather_16bit_weights_on_model_save": True
-            # },
-            "pipeline": {
-                "enabled": True,
-                "num_stages": 2,  # Number of pipeline stages
-                "pipe_chunk_size": 1,  # Micro-batch size
-                "activation_checkpoint_interval": 1,  # Frequency of activation checkpointing
-            },
-            # "activation_checkpointing": {
-            #     "partition_activations": True,
-            #     "cpu_checkpointing": True,
-            #     "contiguous_memory_optimization": True,
-            #     "synchronize_checkpoint_boundary": True,
-            #     "number_checkpoints": 8,
-            #     "profile": False
-            # },
             "optimizer": {
                 "type": "AdamW",
                 "params": {
@@ -253,8 +242,8 @@ class VideoTrainer:
         # Create dataset with repeated tensors
         self.batch = (video_latent, image_latent, positive_prompt, negative_prompt)
 
-    def mem(self, place):
-        if self.is_main_process:
+    def mem(self, place, verbose=False):
+        if self.is_main_process and verbose:
             print(f"Mem usage at {place}: {torch.cuda.memory_allocated() / 1024**2}")
 
     def get_sigma(self, timestep):
@@ -266,140 +255,132 @@ class VideoTrainer:
                 tensor.to(self.device, dtype=self.training_dtype)
                 for tensor in self.batch
         ]
-        latent_model_input = self.scheduler.scale_model_input(video_latent, self.generator_one_step_time)
+        t_index = torch.randint(0, len(self.generator_timesteps), (1,))
+        generator_timestep = self.generator_timesteps[t_index].expand(video_latent.shape[0]).to(self.device)
+
+        latent_model_input = self.student_scheduler.scale_model_input(video_latent, generator_timestep)
         # concat the image latent along the channel dimension if provided
         if self.pipeline_type == "i2v":
             latent_model_input = torch.cat([latent_model_input, image_latent], dim=2)
         timesteps = torch.randint(0, self.tmax, (video_latent.shape[0],)).to(self.device)
-        timestep = self.generator_one_step_time.expand(latent_model_input.shape[0]).to(self.device)
+
         if "1.5" in self.config.get("model", ""):
             ofs_emb = latent_model_input.new_full((1,), fill_value=2.0).to(self.device, dtype=self.training_dtype)
         else:
             ofs_emb = None
-        return video_latent, image_latent, latent_model_input, positive_prompt, negative_prompt, timesteps, timestep, ofs_emb
-
-    def run_models(
-        self,
-        video_latent,
-        image_latent,
-        latent_model_input,
-        positive_prompt,
-        negative_prompt,
-        timesteps,
-        generator_timestep,
-        ofs_emb,
-        is_training_student=True,
-    ):
-        # Set generator mode
-        self.dit.set_adapter("generator")
-        self.mem("start of run models")
-
-        # Generator forward pass
-        with torch.set_grad_enabled(not is_training_student):
-            noise_pred_uncond = self.engine(
-                hidden_states=latent_model_input, # [1,13,16,60,90]
-                encoder_hidden_states=negative_prompt,
-                ofs=ofs_emb,
-                timestep=generator_timestep,
-                return_dict=False,
-            )[0]
-            noise_pred_text = self.engine(
-                hidden_states=latent_model_input, # [1,13,16,60,90]
-                encoder_hidden_states=positive_prompt,
-                ofs=ofs_emb,
-                timestep=generator_timestep,
-                return_dict=False,
-            )[0]
-            noise_pred = noise_pred_uncond + self.guidance_scale * (noise_pred_text - noise_pred_uncond)
-
-
-        self.mem("gen fwd")
-        xg = self.student_scheduler.step(noise_pred, self.generator_one_step_time, video_latent, return_dict=False)[0]
-        noise = 0.5 * torch.ones_like(video_latent).to(self.device, dtype=self.training_dtype)
-
-        xt = self.scheduler.add_noise(xg, noise, timesteps)
-        # Teacher forward pass (always in eval mode)
-        self.dit.disable_adapter()
-        with torch.inference_mode():
-            teacher_score_uncond = self.engine(
-                hidden_states=xt,
-                encoder_hidden_states=negative_prompt,
-                timestep=timesteps,
-                ofs=ofs_emb,
-                return_dict=False,
-            )[0]
-            teacher_score_text = self.engine(
-                hidden_states=xt,
-                encoder_hidden_states=positive_prompt,
-                timestep=timesteps,
-                ofs=ofs_emb,
-                return_dict=False,
-            )[0]
-            teacher_score = teacher_score_uncond + self.guidance_scale * (teacher_score_text - teacher_score_uncond)
-
-        self.mem("teach fwd")
-
-        # Set student mode
-        self.dit.set_adapter("student")
-        with torch.set_grad_enabled(is_training_student):
-            student_score_uncond = self.engine(
-                hidden_states=xt,
-                encoder_hidden_states=negative_prompt,
-                timestep=timesteps,
-                ofs=ofs_emb,
-                return_dict=False,
-            )[0]
-            self.mem("student fwd1")
-            student_score_text = self.engine(
-                hidden_states=xt,
-                encoder_hidden_states=positive_prompt,
-                timestep=timesteps,
-                ofs=ofs_emb,
-                return_dict=False,
-            )[0]
-            student_score = student_score_uncond + self.guidance_scale * (student_score_text - student_score_uncond)
-        self.mem("student fwd")
-        sigma_t = self.sigmas[timesteps]
-        loss_type = 'student' if is_training_student else 'generator'
-        return teacher_score, student_score, xg, xt, sigma_t, loss_type
+        return video_latent, image_latent, latent_model_input, positive_prompt, negative_prompt, timesteps, generator_timestep, ofs_emb
 
     def train_step(self):
         timing_stats = {}
         total_start = start = time.time()
         total_student_loss = 0
+        (
+            video_latent,
+            image_latent,
+            latent_model_input,
+            positive_prompt,
+            negative_prompt,
+            timesteps,
+            generator_timestep,
+            ofs_emb
+        ) = self.prepare_model_inputs()
 
-        teacher_score, student_score, xg, xt, sigma_t, loss_type = self.run_models(
-            *self.prepare_model_inputs(),
-            is_training_student=True
-        )
+        self.engine.module.set_adapter("generator")
+        self.mem("start of run models")
 
-        student_loss = self.sid_loss(teacher_score, student_score, xg.detach(), xt.detach(), sigma_t, loss_type)
-        total_student_loss = student_loss.detach().item()
+        # Generator forward pass
+        noise_pred = self.engine(
+            hidden_states=latent_model_input,
+            encoder_hidden_states=positive_prompt,
+            ofs=ofs_emb,
+            timestep=generator_timestep,
+            return_dict=False,
+        )[0]
+        timing_stats['gen fwd'] = time.time() - start
+        start = time.time()
+        self.mem("gen fwd")
+
+        xg = self.student_scheduler.step(noise_pred, generator_timestep[0], video_latent, return_dict=False)[0]
+        noise = 0.5 * torch.ones_like(video_latent).to(self.device, dtype=self.training_dtype)
+        xt = self.scheduler.add_noise(xg, noise, timesteps).detach()
+
+        # Teacher forward pass (always in eval mode)
+        self.engine.module.disable_adapter()
+        with torch.inference_mode():
+            teacher_scores = self.engine(
+                hidden_states=torch.cat([xt, xt], dim=0),
+                encoder_hidden_states=torch.cat([negative_prompt, positive_prompt], dim=0),
+                timestep=timesteps,
+                ofs=ofs_emb,
+                return_dict=False,
+            )[0]
+            teacher_score_uncond, teacher_score_text = teacher_scores.chunk(2)
+            teacher_score = teacher_score_uncond + self.guidance_scale * (teacher_score_text - teacher_score_uncond)
+
+        timing_stats['teacher fwd'] = time.time() - start
+        start = time.time()
+        self.mem("teacher fwd")
+
+        # Set student mode
+        self.engine.module.set_adapter("student")
+        with torch.inference_mode():
+            student_score = self.engine(
+                hidden_states=xt,
+                encoder_hidden_states=positive_prompt,
+                timestep=timesteps,
+                ofs=ofs_emb,
+                return_dict=False,
+            )[0]
+
+        timing_stats['student fwd'] = time.time() - start
+        start = time.time()
+        self.mem("student fwd")
+
+        sigma_t = self.sigmas[timesteps]
+        generator_loss = self.sid_loss(teacher_score, student_score, xg, xt, sigma_t, loss_type="generator")
+        total_generator_loss = generator_loss.detach().item()
+        self.dit.set_adapter("generator")
+        self.engine.backward(generator_loss)
+        for name, param in self.dit.named_parameters():
+            if param.requires_grad and param.grad is None:
+                print(f"{name}: needs grad")
+        self.engine.step()
+
+        timing_stats['gen update'] = time.time() - start
+        start = time.time()
+        self.mem("gen update")
+
         self.dit.set_adapter("student")
+        student_score = self.engine(
+            hidden_states=xt,
+            encoder_hidden_states=positive_prompt,
+            timestep=timesteps,
+            ofs=ofs_emb,
+            return_dict=False,
+        )[0]
+        timing_stats['student fwd2'] = time.time() - start
+        start = time.time()
+        self.mem("student fwd2")
+
+        student_loss = self.sid_loss(teacher_score, student_score, xg.detach(), xt, sigma_t, loss_type="student")
+        total_student_loss = student_loss.detach().item()
+
         self.engine.backward(student_loss)
         self.engine.step()
 
-        timing_stats["student_train_time"] = time.time() - start
-
-        # Train generator (less frequently as per ratio)
-        total_generator_loss = 0
-        if self.global_step % self.student_gen_train_ratio == 0:
-            start = time.time()
-            generator_loss = self.sid_loss(teacher_score, student_score.detach(), xg, xt, sigma_t, loss_type)
-            total_generator_loss = generator_loss.detach().item()
-            self.dit.set_adapter("generator")
-            self.engine.backward(generator_loss)
-            self.engine.step()
-            timing_stats["generator_train_time"] = time.time() - start
-
-        timing_stats["total_time"] = time.time() - total_start
+        timing_stats['student update'] = time.time() - start
+        start = time.time()
+        self.mem("student update")
         self.global_step += 1
+        timing_stats["total update time"] = time.time() - total_start
 
-        return total_student_loss, total_generator_loss, timing_stats
+        return total_student_loss, total_generator_loss, timing_stats, teacher_score, student_score
 
     def train(self):
         generator_samples = []
-
+        if self.ckpt_save_path is not None and self.is_main_process:
+            generator_samples.append(self.generate_latent())
+            self.save_checkpoint(generator_samples)
         for epoch in range(self.num_epochs):
             if self.is_main_process:
                 print(f"Starting epoch {epoch}")
@@ -408,13 +389,14 @@ class VideoTrainer:
                 loop = range(self.config.get("dataset_size"))
 
             for batch_idx in loop:
-                student_loss, generator_loss, timing_stats = self.train_step()
+                student_loss, generator_loss, timing_stats, teacher_score, student_score = self.train_step()
 
                 if self.config.get("use_wandb", False) and self.is_main_process:
                     log_dict = {
                         "step": self.global_step,
                         "epoch": epoch,
                         "student_loss": student_loss,
+                        "student-teacher-diff": teacher_score - student_score
                     }
 
                     # Only log generator loss when it's actually updated
@@ -441,23 +423,19 @@ class VideoTrainer:
         ) = self.prepare_model_inputs()
         with torch.inference_mode():
             self.dit.set_adapter("generator")
-            noise_pred_uncond = self.engine(
-                hidden_states=latent_model_input, # [1,13,16,60,90]
-                encoder_hidden_states=negative_prompt,
-                ofs=ofs_emb,
-                timestep=generator_timestep,
-                return_dict=False,
-            )[0]
-            noise_pred_text = self.engine(
-                hidden_states=latent_model_input, # [1,13,16,60,90]
-                encoder_hidden_states=positive_prompt,
-                ofs=ofs_emb,
-                timestep=generator_timestep,
-                return_dict=False,
-            )[0]
-            noise_pred = noise_pred_uncond + self.guidance_scale * (noise_pred_text - noise_pred_uncond)
+            self.student_scheduler.set_timesteps(num_inference_steps=self.student_timesteps)
+            for t in tqdm(self.student_scheduler.timesteps, desc="generating validation video"):
+                latent_model_input = self.scheduler.scale_model_input(video_latent, generator_timestep)
+                noise_pred = self.engine(
+                    hidden_states=latent_model_input,
+                    encoder_hidden_states=positive_prompt,
+                    ofs=ofs_emb,
+                    timestep=generator_timestep,
+                    return_dict=False,
+                )[0]
+                video_latent = self.student_scheduler.step(noise_pred, t, video_latent, return_dict=False)[0]
 
-        return self.student_scheduler.step(noise_pred, self.generator_one_step_time, video_latent, return_dict=False)[0]
+        return video_latent
 
     def save_checkpoint(self, generator_samples):
         """Save model checkpoint"""
