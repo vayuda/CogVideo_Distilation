@@ -3,15 +3,14 @@ model: "THUDM/CogVideoX-2b"
 # hyper params
 gradient_accumulation_steps: 1
 batch_size: 1
-dataset_size: 75
+dataset_size: 500
 gradient_clip_val: 1.0
 teacher_timesteps: 50
 student_timesteps: 10
 tmax: 1000
-num_steps: 50
+num_epochs: 10
 student_gen_train_ratio: 1
-sigma_init: 2.5
-guidance_scale: 7
+guidance_scale: 7.5
 
 height: 480
 width: 720
@@ -28,6 +27,6 @@ lora:
 
 use_wandb: True
 wandb_project: "CogVideoX-SiD-Distillation"
-wandb_run_name: "test-1"
+wandb_run_name: "test-6"
 wandb_entity: "SiD_pawan"
 ckpt_save_path: "checkpoints/"

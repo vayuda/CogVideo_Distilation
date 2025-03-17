@@ -6,6 +6,7 @@ from diffusers.utils import export_to_video, load_image
 from diffusers.video_processor import VideoProcessor
 from diffusers.models.embeddings import get_3d_rotary_pos_embed
 from tqdm import tqdm
+import os
 
 def get_resize_crop_region_for_grid(src, tgt_width, tgt_height):
     tw = tgt_width
@@ -208,8 +209,9 @@ class CogVideoXPipeline():
                 return_dict=False,
             )[0]
             # self.mem("after inference", print_=True)
-        noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
-        noise_pred = noise_pred_uncond + self.guidance_scale * (noise_pred_text - noise_pred_uncond)
+        if self.guidance_scale > 1.0:
+            noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+            noise_pred = noise_pred_uncond + self.guidance_scale * (noise_pred_text - noise_pred_uncond)
 
         latent = self.scheduler.step(noise_pred, t, latent, return_dict=False)[0]
         return latent
@@ -258,12 +260,12 @@ class CogVideoXPipeline():
 
 if __name__ == "__main__":
     torch.set_grad_enabled(False)
-    pipeline = CogVideoXPipeline("THUDM/CogVideoX-2b", guidance_scale=7.5, pipe_dtype=torch.float16)
+    pipeline = CogVideoXPipeline("THUDM/CogVideoX-2b", guidance_scale=0, pipe_dtype=torch.float16)
 
     latent = torch.load("checkpoints/gen_latents_step_latest.pt")
     for i in range(latent.shape[0]):
-        pipeline.export_video_from_latent(latent[1].unsqueeze(0), f"samples/epoch{i}.mp4")
-
+        pipeline.export_video_from_latent(latent[i].unsqueeze(0), f"samples/epoch{i}.mp4")
+        print(f"exported video {i+1}/{latent.shape[0]}")
 
     # pipeline.encode_text([prompt], save_path="data/prompt_embed_2b.pt")
     # pipeline.encode_text([negative_prompt], save_path="data/negative_prompt_embed_2b.pt")
@@ -275,8 +277,8 @@ if __name__ == "__main__":
     #     negative_prompt = f.read()
     # pipeline.full_pipeline(
     #     [prompt],
-    #     "2b-1.mp4",
+    #     "2b-10nocfg.mp4",
     #     negative_prompts=[negative_prompt],
-    #     denoising_steps=1
+    #     denoising_steps=10
     #     # image_paths=["data/horse.png"]
     # )
