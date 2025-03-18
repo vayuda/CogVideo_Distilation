@@ -3,15 +3,16 @@ model: "THUDM/CogVideoX-2b"
 # hyper params
 gradient_accumulation_steps: 1
 batch_size: 1
-dataset_size: 500
+dataset_size: 5
 gradient_clip_val: 1.0
 teacher_timesteps: 50
-student_timesteps: 10
-tmax: 1000
+student_timesteps: 1
+tmin: 20
+tmax: 980
 num_epochs: 10
 student_gen_train_ratio: 1
 guidance_scale: 7.5
-
+generator_one_step_time: 625
 height: 480
 width: 720
 fps: 8
