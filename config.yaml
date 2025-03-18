@@ -12,7 +12,7 @@ tmax: 980
 num_epochs: 10
 student_gen_train_ratio: 1
 guidance_scale: 7.5
-generator_one_step_time: 625
+generator_one_step_time: 999
 height: 480
 width: 720
 fps: 8

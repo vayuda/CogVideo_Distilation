@@ -50,7 +50,7 @@ class VideoTrainer:
         # Set up schedulers
         self.scheduler = CogVideoXDDIMScheduler.from_pretrained(config["model"], subfolder="scheduler")
         self.scheduler.set_timesteps(self.scheduler.config.num_train_timesteps)
-        self.generator_timesteps = torch.tensor([config.get("generator_one_step_time", 625)],dtype=torch.int32)
+        self.generator_timesteps = torch.tensor([int(config.get("generator_one_step_time", 999) * (1-i/self.config.get("student_timesteps",1))) for i in range(self.student_timesteps)],dtype=torch.int32)
         print("scheduler type", self.scheduler.config.prediction_type)
 
         # Setup distributed training
@@ -124,6 +124,9 @@ class VideoTrainer:
         ds_config = {
             "fp16": {
                 "enabled": "False",
+                "initial_scale_power": 6,
+                "loss_scale_window": 100,
+                "min_loss_scale": 1
             },
             "train_micro_batch_size_per_gpu": 1,
             "gradient_accumulation_steps": 1,
@@ -383,9 +386,7 @@ class VideoTrainer:
         ) = self.prepare_model_inputs()
         with torch.inference_mode():
             self.engine.module.set_adapter("generator")
-            prompt = torch.cat([negative_prompt, positive_prompt],dim=0)
-            ts = [625]
-            for t in tqdm(ts, desc="generating validation video"):
+            for t in tqdm(self.generator_timesteps, desc="generating validation video"):
                 latent_model_input = torch.zeros_like(latent)
                 latent_model_input = self.scheduler.add_noise(latent_model_input, noise, t * torch.ones(latent_model_input.shape[0], dtype=torch.long, device=self.device))
                 timestep = t * torch.ones(latent_model_input.shape[0]).to(self.device)
@@ -396,9 +397,11 @@ class VideoTrainer:
                     timestep=timestep,
                     return_dict=False,
                 )[0]
-                latent = self.scheduler.step(noise_pred, t, latent, return_dict=False)[0]
+                out = self.scheduler.step(noise_pred, t, latent, return_dict=False)
+                latent = out[0]
+                image = out[1]
 
-        return latent
+        return image
 
     def save_checkpoint(self, generator_samples):
         """Save model checkpoint"""

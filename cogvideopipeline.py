@@ -263,7 +263,7 @@ if __name__ == "__main__":
     pipeline = CogVideoXPipeline("THUDM/CogVideoX-2b", guidance_scale=0, pipe_dtype=torch.float16)
 
     latent = torch.load("checkpoints/gen_latents_step_latest.pt")
-    for i in range(latent.shape[0]):
+    for i in tqdm(range(latent.shape[0]), desc="Exporting videos"):
         pipeline.export_video_from_latent(latent[i].unsqueeze(0), f"samples/epoch{i}.mp4")
         print(f"exported video {i+1}/{latent.shape[0]}")
 
@@ -277,8 +277,8 @@ if __name__ == "__main__":
     #     negative_prompt = f.read()
     # pipeline.full_pipeline(
     #     [prompt],
-    #     "2b-10nocfg.mp4",
+    #     "2b-10nocfg_alt.mp4",
     #     negative_prompts=[negative_prompt],
-    #     denoising_steps=10
+    #     denoising_steps=1
     #     # image_paths=["data/horse.png"]
     # )
