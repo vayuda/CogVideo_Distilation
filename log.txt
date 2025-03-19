@@ -1,0 +1,638 @@
+nohup: ignoring input
+[2025-03-19 02:47:58,321] [INFO] [real_accelerator.py:222:get_accelerator] Setting ds_accelerator to cuda (auto detect)
+[2025-03-19 02:48:01,000] [WARNING] [runner.py:215:fetch_hostfile] Unable to find hostfile, will proceed with training with local resources only.
+Detected VISIBLE_DEVICES=4,5,6,7: setting --include=localhost:4,5,6,7
+[2025-03-19 02:48:01,000] [INFO] [runner.py:607:main] cmd = /home/pawan/miniconda3/envs/ml/bin/python -u -m deepspeed.launcher.launch --world_info=eyJsb2NhbGhvc3QiOiBbNCwgNSwgNiwgN119 --master_addr=127.0.0.1 --master_port=29500 --enable_each_rank_log=None test.py
+[2025-03-19 02:48:03,004] [INFO] [real_accelerator.py:222:get_accelerator] Setting ds_accelerator to cuda (auto detect)
+[2025-03-19 02:48:05,537] [INFO] [launch.py:146:main] WORLD INFO DICT: {'localhost': [4, 5, 6, 7]}
+[2025-03-19 02:48:05,537] [INFO] [launch.py:152:main] nnodes=1, num_local_procs=4, node_rank=0
+[2025-03-19 02:48:05,538] [INFO] [launch.py:163:main] global_rank_mapping=defaultdict(<class 'list'>, {'localhost': [0, 1, 2, 3]})
+[2025-03-19 02:48:05,538] [INFO] [launch.py:164:main] dist_world_size=4
+[2025-03-19 02:48:05,538] [INFO] [launch.py:168:main] Setting CUDA_VISIBLE_DEVICES=4,5,6,7
+[2025-03-19 02:48:05,539] [INFO] [launch.py:256:main] process 3721586 spawned with command: ['/home/pawan/miniconda3/envs/ml/bin/python', '-u', 'test.py', '--local_rank=0']
+[2025-03-19 02:48:05,540] [INFO] [launch.py:256:main] process 3721587 spawned with command: ['/home/pawan/miniconda3/envs/ml/bin/python', '-u', 'test.py', '--local_rank=1']
+[2025-03-19 02:48:05,541] [INFO] [launch.py:256:main] process 3721588 spawned with command: ['/home/pawan/miniconda3/envs/ml/bin/python', '-u', 'test.py', '--local_rank=2']
+[2025-03-19 02:48:05,542] [INFO] [launch.py:256:main] process 3721589 spawned with command: ['/home/pawan/miniconda3/envs/ml/bin/python', '-u', 'test.py', '--local_rank=3']
+[2025-03-19 02:48:08,134] [INFO] [real_accelerator.py:222:get_accelerator] Setting ds_accelerator to cuda (auto detect)
+[2025-03-19 02:48:08,183] [INFO] [real_accelerator.py:222:get_accelerator] Setting ds_accelerator to cuda (auto detect)
+[2025-03-19 02:48:08,200] [INFO] [real_accelerator.py:222:get_accelerator] Setting ds_accelerator to cuda (auto detect)
+[2025-03-19 02:48:08,222] [INFO] [real_accelerator.py:222:get_accelerator] Setting ds_accelerator to cuda (auto detect)
+Training with torch.float16
+Training with torch.float16
+Training with torch.float16
+Process rank: 0/4, device: cuda:0
+Training with torch.float16
+Process rank: 2/4, device: cuda:2
+Process rank: 1/4, device: cuda:1
+Process rank: 3/4, device: cuda:3
+[2025-03-19 02:48:24,420] [INFO] [logging.py:128:log_dist] [Rank -1] DeepSpeed info: version=0.16.4, git-hash=unknown, git-branch=unknown
+[2025-03-19 02:48:24,420] [INFO] [comm.py:658:init_distributed] cdb=None
+[2025-03-19 02:48:24,421] [INFO] [comm.py:689:init_distributed] Initializing TorchBackend in DeepSpeed with backend nccl
+[2025-03-19 02:48:28,793] [INFO] [logging.py:128:log_dist] [Rank -1] DeepSpeed info: version=0.16.4, git-hash=unknown, git-branch=unknown
+[2025-03-19 02:48:28,794] [INFO] [comm.py:658:init_distributed] cdb=None
+[2025-03-19 02:48:28,798] [INFO] [config.py:734:__init__] Config mesh_device None world_size = 4
+[2025-03-19 02:48:29,057] [INFO] [logging.py:128:log_dist] [Rank -1] DeepSpeed info: version=0.16.4, git-hash=unknown, git-branch=unknown
+[2025-03-19 02:48:29,057] [INFO] [comm.py:658:init_distributed] cdb=None
+[2025-03-19 02:48:29,061] [INFO] [config.py:734:__init__] Config mesh_device None world_size = 4
+[2025-03-19 02:48:29,492] [INFO] [logging.py:128:log_dist] [Rank -1] DeepSpeed info: version=0.16.4, git-hash=unknown, git-branch=unknown
+[2025-03-19 02:48:29,492] [INFO] [comm.py:658:init_distributed] cdb=None
+[2025-03-19 02:48:29,497] [INFO] [config.py:734:__init__] Config mesh_device None world_size = 4
+[2025-03-19 02:48:29,503] [INFO] [config.py:734:__init__] Config mesh_device None world_size = 4
+Using /data/pawan/.cache/torch_extensions/py312_cu124 as PyTorch extensions root...
+Using /data/pawan/.cache/torch_extensions/py312_cu124 as PyTorch extensions root...
+Detected CUDA files, patching ldflags
+Emitting ninja build file /data/pawan/.cache/torch_extensions/py312_cu124/fused_adam/build.ninja...
+/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/utils/cpp_extension.py:2059: UserWarning: TORCH_CUDA_ARCH_LIST is not set, all archs for visible cards are included for compilation. 
+If this is not desired, please set os.environ['TORCH_CUDA_ARCH_LIST'].
+  warnings.warn(
+Building extension module fused_adam...
+Allowing ninja to set a default number of workers... (overridable by setting the environment variable MAX_JOBS=N)
+[2025-03-19 02:48:31,009] [INFO] [logging.py:128:log_dist] [Rank 0] DeepSpeed Flops Profiler Enabled: False
+Using /data/pawan/.cache/torch_extensions/py312_cu124 as PyTorch extensions root...
+ninja: no work to do.
+Loading extension module fused_adam...
+Time to load fused_adam op: 0.05000162124633789 seconds
+Using /data/pawan/.cache/torch_extensions/py312_cu124 as PyTorch extensions root...
+Detected CUDA files, patching ldflags
+Emitting ninja build file /data/pawan/.cache/torch_extensions/py312_cu124/fused_adam/build.ninja...
+/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/utils/cpp_extension.py:2059: UserWarning: TORCH_CUDA_ARCH_LIST is not set, all archs for visible cards are included for compilation. 
+If this is not desired, please set os.environ['TORCH_CUDA_ARCH_LIST'].
+  warnings.warn(
+Building extension module fused_adam...
+Allowing ninja to set a default number of workers... (overridable by setting the environment variable MAX_JOBS=N)
+ninja: no work to do.
+Loading extension module fused_adam...
+Time to load fused_adam op: 0.050055742263793945 seconds
+Loading extension module fused_adam...
+Time to load fused_adam op: 0.10278868675231934 seconds
+[2025-03-19 02:48:31,116] [INFO] [logging.py:128:log_dist] [Rank 0] Using DeepSpeed Optimizer param name adamw as basic optimizer
+[2025-03-19 02:48:31,117] [INFO] [logging.py:128:log_dist] [Rank 0] Removing param_group that has no 'params' in the basic Optimizer
+[rank1]:[W319 02:48:31.734951446 ProcessGroupNCCL.cpp:4561] [PG ID 0 PG GUID 0 Rank 1]  using GPU 1 to perform barrier as devices used by this process are currently unknown. This can potentially cause a hang if this rank to GPU mapping is incorrect. Specify device_ids in barrier() to force use of a particular device, or call init_process_group() with a device_id.
+Loading extension module fused_adam...
+Time to load fused_adam op: 0.2039642333984375 seconds
+[rank3]:[W319 02:48:31.779007679 ProcessGroupNCCL.cpp:4561] [PG ID 0 PG GUID 0 Rank 3]  using GPU 3 to perform barrier as devices used by this process are currently unknown. This can potentially cause a hang if this rank to GPU mapping is incorrect. Specify device_ids in barrier() to force use of a particular device, or call init_process_group() with a device_id.
+[2025-03-19 02:48:31,192] [INFO] [logging.py:128:log_dist] [Rank 0] DeepSpeed Basic Optimizer = FusedAdam
+[2025-03-19 02:48:31,192] [INFO] [logging.py:128:log_dist] [Rank 0] DeepSpeed Final Optimizer = FusedAdam
+[2025-03-19 02:48:31,192] [INFO] [logging.py:128:log_dist] [Rank 0] DeepSpeed using configured LR scheduler = None
+[2025-03-19 02:48:31,193] [INFO] [logging.py:128:log_dist] [Rank 0] DeepSpeed LR Scheduler = None
+[2025-03-19 02:48:31,193] [INFO] [logging.py:128:log_dist] [Rank 0] step=0, skipped=0, lr=[1e-05], mom=[[0.9, 0.999]]
+[2025-03-19 02:48:31,200] [INFO] [config.py:1001:print] DeepSpeedEngine configuration:
+[2025-03-19 02:48:31,201] [INFO] [config.py:1005:print]   activation_checkpointing_config  {
+    "partition_activations": false, 
+    "contiguous_memory_optimization": false, 
+    "cpu_checkpointing": false, 
+    "number_checkpoints": null, 
+    "synchronize_checkpoint_boundary": false, 
+    "profile": false
+}
+[2025-03-19 02:48:31,201] [INFO] [config.py:1005:print]   aio_config ................... {'block_size': 1048576, 'queue_depth': 8, 'intra_op_parallelism': 1, 'single_submit': False, 'overlap_events': True, 'use_gds': False}
+[2025-03-19 02:48:31,201] [INFO] [config.py:1005:print]   amp_enabled .................. False
+[2025-03-19 02:48:31,201] [INFO] [config.py:1005:print]   amp_params ................... False
+[2025-03-19 02:48:31,202] [INFO] [config.py:1005:print]   autotuning_config ............ {
+    "enabled": false, 
+    "start_step": null, 
+    "end_step": null, 
+    "metric_path": null, 
+    "arg_mappings": null, 
+    "metric": "throughput", 
+    "model_info": null, 
+    "results_dir": "autotuning_results", 
+    "exps_dir": "autotuning_exps", 
+    "overwrite": true, 
+    "fast": true, 
+    "start_profile_step": 3, 
+    "end_profile_step": 5, 
+    "tuner_type": "gridsearch", 
+    "tuner_early_stopping": 5, 
+    "tuner_num_trials": 50, 
+    "model_info_path": null, 
+    "mp_size": 1, 
+    "max_train_batch_size": null, 
+    "min_train_batch_size": 1, 
+    "max_train_micro_batch_size_per_gpu": 1.024000e+03, 
+    "min_train_micro_batch_size_per_gpu": 1, 
+    "num_tuning_micro_batch_sizes": 3
+}
+[2025-03-19 02:48:31,202] [INFO] [config.py:1005:print]   bfloat16_enabled ............. False
+[2025-03-19 02:48:31,202] [INFO] [config.py:1005:print]   bfloat16_immediate_grad_update  False
+[2025-03-19 02:48:31,202] [INFO] [config.py:1005:print]   checkpoint_parallel_write_pipeline  False
+[2025-03-19 02:48:31,203] [INFO] [config.py:1005:print]   checkpoint_tag_validation_enabled  True
+[2025-03-19 02:48:31,203] [INFO] [config.py:1005:print]   checkpoint_tag_validation_fail  False
+[2025-03-19 02:48:31,203] [INFO] [config.py:1005:print]   comms_config ................. <deepspeed.comm.config.DeepSpeedCommsConfig object at 0x7fb1b5aeab40>
+[2025-03-19 02:48:31,203] [INFO] [config.py:1005:print]   communication_data_type ...... None
+[2025-03-19 02:48:31,203] [INFO] [config.py:1005:print]   compression_config ........... {'weight_quantization': {'shared_parameters': {'enabled': False, 'quantizer_kernel': False, 'schedule_offset': 0, 'quantize_groups': 1, 'quantize_verbose': False, 'quantization_type': 'symmetric', 'quantize_weight_in_forward': False, 'rounding': 'nearest', 'fp16_mixed_quantize': False, 'quantize_change_ratio': 0.001}, 'different_groups': {}}, 'activation_quantization': {'shared_parameters': {'enabled': False, 'quantization_type': 'symmetric', 'range_calibration': 'dynamic', 'schedule_offset': 1000}, 'different_groups': {}}, 'sparse_pruning': {'shared_parameters': {'enabled': False, 'method': 'l1', 'schedule_offset': 1000}, 'different_groups': {}}, 'row_pruning': {'shared_parameters': {'enabled': False, 'method': 'l1', 'schedule_offset': 1000}, 'different_groups': {}}, 'head_pruning': {'shared_parameters': {'enabled': False, 'method': 'topk', 'schedule_offset': 1000}, 'different_groups': {}}, 'channel_pruning': {'shared_parameters': {'enabled': False, 'method': 'l1', 'schedule_offset': 1000}, 'different_groups': {}}, 'layer_reduction': {'enabled': False}}
+[2025-03-19 02:48:31,203] [INFO] [config.py:1005:print]   curriculum_enabled_legacy .... False
+[2025-03-19 02:48:31,203] [INFO] [config.py:1005:print]   curriculum_params_legacy ..... False
+[2025-03-19 02:48:31,203] [INFO] [config.py:1005:print]   data_efficiency_config ....... {'enabled': False, 'seed': 1234, 'data_sampling': {'enabled': False, 'num_epochs': 1000, 'num_workers': 0, 'curriculum_learning': {'enabled': False}}, 'data_routing': {'enabled': False, 'random_ltd': {'enabled': False, 'layer_token_lr_schedule': {'enabled': False}}}}
+[2025-03-19 02:48:31,203] [INFO] [config.py:1005:print]   data_efficiency_enabled ...... False
+[2025-03-19 02:48:31,203] [INFO] [config.py:1005:print]   dataloader_drop_last ......... False
+[2025-03-19 02:48:31,204] [INFO] [config.py:1005:print]   disable_allgather ............ False
+[2025-03-19 02:48:31,204] [INFO] [config.py:1005:print]   dump_state ................... False
+[2025-03-19 02:48:31,204] [INFO] [config.py:1005:print]   dynamic_loss_scale_args ...... None
+[2025-03-19 02:48:31,204] [INFO] [config.py:1005:print]   eigenvalue_enabled ........... False
+[2025-03-19 02:48:31,204] [INFO] [config.py:1005:print]   eigenvalue_gas_boundary_resolution  1
+[2025-03-19 02:48:31,204] [INFO] [config.py:1005:print]   eigenvalue_layer_name ........ bert.encoder.layer
+[2025-03-19 02:48:31,204] [INFO] [config.py:1005:print]   eigenvalue_layer_num ......... 0
+[2025-03-19 02:48:31,204] [INFO] [config.py:1005:print]   eigenvalue_max_iter .......... 100
+[2025-03-19 02:48:31,204] [INFO] [config.py:1005:print]   eigenvalue_stability ......... 1e-06
+[2025-03-19 02:48:31,204] [INFO] [config.py:1005:print]   eigenvalue_tol ............... 0.01
+[2025-03-19 02:48:31,204] [INFO] [config.py:1005:print]   eigenvalue_verbose ........... False
+[2025-03-19 02:48:31,204] [INFO] [config.py:1005:print]   elasticity_enabled ........... False
+[2025-03-19 02:48:31,205] [INFO] [config.py:1005:print]   flops_profiler_config ........ {
+    "enabled": false, 
+    "recompute_fwd_factor": 0.0, 
+    "profile_step": 1, 
+    "module_depth": -1, 
+    "top_modules": 1, 
+    "detailed": true, 
+    "output_file": null
+}
+[2025-03-19 02:48:31,205] [INFO] [config.py:1005:print]   fp16_auto_cast ............... None
+[2025-03-19 02:48:31,205] [INFO] [config.py:1005:print]   fp16_enabled ................. False
+[2025-03-19 02:48:31,205] [INFO] [config.py:1005:print]   fp16_master_weights_and_gradients  False
+[2025-03-19 02:48:31,205] [INFO] [config.py:1005:print]   global_rank .................. 0
+[2025-03-19 02:48:31,205] [INFO] [config.py:1005:print]   grad_accum_dtype ............. None
+[2025-03-19 02:48:31,205] [INFO] [config.py:1005:print]   gradient_accumulation_steps .. 1
+[2025-03-19 02:48:31,205] [INFO] [config.py:1005:print]   gradient_clipping ............ 0.0
+[2025-03-19 02:48:31,205] [INFO] [config.py:1005:print]   gradient_predivide_factor .... 1.0
+[2025-03-19 02:48:31,205] [INFO] [config.py:1005:print]   graph_harvesting ............. False
+[2025-03-19 02:48:31,205] [INFO] [config.py:1005:print]   hybrid_engine ................ enabled=False max_out_tokens=512 inference_tp_size=1 release_inference_cache=False pin_parameters=True tp_gather_partition_size=8
+[2025-03-19 02:48:31,206] [INFO] [config.py:1005:print]   initial_dynamic_scale ........ 65536
+[2025-03-19 02:48:31,206] [INFO] [config.py:1005:print]   load_universal_checkpoint .... False
+[2025-03-19 02:48:31,206] [INFO] [config.py:1005:print]   loss_scale ................... 0
+[2025-03-19 02:48:31,206] [INFO] [config.py:1005:print]   memory_breakdown ............. False
+[2025-03-19 02:48:31,206] [INFO] [config.py:1005:print]   mics_hierarchial_params_gather  False
+[2025-03-19 02:48:31,206] [INFO] [config.py:1005:print]   mics_shard_size .............. -1
+[2025-03-19 02:48:31,206] [INFO] [config.py:1005:print]   monitor_config ............... tensorboard=TensorBoardConfig(enabled=False, output_path='', job_name='DeepSpeedJobName') comet=CometConfig(enabled=False, samples_log_interval=100, project=None, workspace=None, api_key=None, experiment_name=None, experiment_key=None, online=None, mode=None) wandb=WandbConfig(enabled=False, group=None, team=None, project='deepspeed') csv_monitor=CSVConfig(enabled=False, output_path='', job_name='DeepSpeedJobName')
+[2025-03-19 02:48:31,206] [INFO] [config.py:1005:print]   nebula_config ................ {
+    "enabled": false, 
+    "persistent_storage_path": null, 
+    "persistent_time_interval": 100, 
+    "num_of_version_in_retention": 2, 
+    "enable_nebula_load": true, 
+    "load_path": null
+}
+[2025-03-19 02:48:31,207] [INFO] [config.py:1005:print]   optimizer_legacy_fusion ...... False
+[2025-03-19 02:48:31,207] [INFO] [config.py:1005:print]   optimizer_name ............... adamw
+[2025-03-19 02:48:31,207] [INFO] [config.py:1005:print]   optimizer_params ............. {'lr': 1e-05, 'betas': [0.9, 0.999], 'eps': 1e-08, 'weight_decay': 0.01}
+[2025-03-19 02:48:31,207] [INFO] [config.py:1005:print]   pipeline ..................... {'stages': 'auto', 'partition': 'best', 'seed_layers': False, 'activation_checkpoint_interval': 0, 'pipe_partitioned': True, 'grad_partitioned': True}
+[2025-03-19 02:48:31,207] [INFO] [config.py:1005:print]   pld_enabled .................. False
+[2025-03-19 02:48:31,207] [INFO] [config.py:1005:print]   pld_params ................... False
+[2025-03-19 02:48:31,207] [INFO] [config.py:1005:print]   prescale_gradients ........... False
+[2025-03-19 02:48:31,207] [INFO] [config.py:1005:print]   scheduler_name ............... None
+[2025-03-19 02:48:31,207] [INFO] [config.py:1005:print]   scheduler_params ............. None
+[2025-03-19 02:48:31,207] [INFO] [config.py:1005:print]   seq_parallel_communication_data_type  torch.float32
+[2025-03-19 02:48:31,207] [INFO] [config.py:1005:print]   sparse_attention ............. None
+[2025-03-19 02:48:31,207] [INFO] [config.py:1005:print]   sparse_gradients_enabled ..... False
+[2025-03-19 02:48:31,207] [INFO] [config.py:1005:print]   steps_per_print .............. None
+[2025-03-19 02:48:31,208] [INFO] [config.py:1005:print]   tensor_parallel_config ....... dtype=torch.float16 autotp_size=0 tensor_parallel=TPConfig(tp_size=1, tp_grain_size=1, mpu=None, tp_group=None) injection_policy_tuple=None keep_module_on_host=False replace_with_kernel_inject=False
+[2025-03-19 02:48:31,208] [INFO] [config.py:1005:print]   timers_config ................ enabled=True synchronized=True
+[2025-03-19 02:48:31,208] [INFO] [config.py:1005:print]   train_batch_size ............. 4
+[2025-03-19 02:48:31,208] [INFO] [config.py:1005:print]   train_micro_batch_size_per_gpu  1
+[2025-03-19 02:48:31,208] [INFO] [config.py:1005:print]   use_data_before_expert_parallel_  False
+[2025-03-19 02:48:31,208] [INFO] [config.py:1005:print]   use_node_local_storage ....... False
+[2025-03-19 02:48:31,208] [INFO] [config.py:1005:print]   wall_clock_breakdown ......... False
+[2025-03-19 02:48:31,208] [INFO] [config.py:1005:print]   weight_quantization_config ... None
+[2025-03-19 02:48:31,208] [INFO] [config.py:1005:print]   world_size ................... 4
+[2025-03-19 02:48:31,208] [INFO] [config.py:1005:print]   zero_allow_untested_optimizer  False
+[2025-03-19 02:48:31,209] [INFO] [config.py:1005:print]   zero_config .................. stage=0 contiguous_gradients=True reduce_scatter=True reduce_bucket_size=500000000 use_multi_rank_bucket_allreduce=True allgather_partitions=True allgather_bucket_size=500000000 overlap_comm=False load_from_fp32_weights=True elastic_checkpoint=False offload_param=None offload_optimizer=None sub_group_size=1000000000 cpu_offload_param=None cpu_offload_use_pin_memory=None cpu_offload=None prefetch_bucket_size=50000000 param_persistence_threshold=100000 model_persistence_threshold=9223372036854775807 max_live_parameters=1000000000 max_reuse_distance=1000000000 gather_16bit_weights_on_model_save=False module_granularity_threshold=0 use_all_reduce_for_fetch_params=False stage3_gather_fp16_weights_on_model_save=False ignore_unused_parameters=True legacy_stage1=False round_robin_gradients=False zero_hpz_partition_size=1 zero_quantized_weights=False zero_quantized_nontrainable_weights=False zero_quantized_gradients=False zeropp_loco_param=None mics_shard_size=-1 mics_hierarchical_params_gather=False memory_efficient_linear=True pipeline_loading_checkpoint=False override_module_apply=True log_trace_cache_warnings=False
+[2025-03-19 02:48:31,209] [INFO] [config.py:1005:print]   zero_enabled ................. False
+[2025-03-19 02:48:31,209] [INFO] [config.py:1005:print]   zero_force_ds_cpu_optimizer .. True
+[2025-03-19 02:48:31,209] [INFO] [config.py:1005:print]   zero_optimization_stage ...... 0
+[2025-03-19 02:48:31,209] [INFO] [config.py:991:print_user_config]   json = {
+    "train_micro_batch_size_per_gpu": 1, 
+    "gradient_accumulation_steps": 1, 
+    "optimizer": {
+        "type": "AdamW", 
+        "params": {
+            "lr": 1e-05, 
+            "betas": [0.9, 0.999], 
+            "eps": 1e-08, 
+            "weight_decay": 0.01
+        }
+    }
+}
+['student']
+Found 180 student params that require grad: 84.38MB
+Found 180 generator params that require grad: 84.38MB
+wandb: Using wandb-core as the SDK backend.  Please refer to https://wandb.me/wandb-core for more information.
+[rank2]:[W319 02:48:31.857564802 ProcessGroupNCCL.cpp:4561] [PG ID 0 PG GUID 0 Rank 2]  using GPU 2 to perform barrier as devices used by this process are currently unknown. This can potentially cause a hang if this rank to GPU mapping is incorrect. Specify device_ids in barrier() to force use of a particular device, or call init_process_group() with a device_id.
+wandb: Currently logged in as: mengomango to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.19.7
+wandb: Run data is saved locally in /home/pawan/code-bases/cogvideo_distilation/wandb/run-20250319_024831-d5z0jqa0
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run test-8
+wandb: ⭐️ View project at https://wandb.ai/SiD_pawan/CogVideoX-SiD-Distillation
+wandb: 🚀 View run at https://wandb.ai/SiD_pawan/CogVideoX-SiD-Distillation/runs/d5z0jqa0
+[rank0]:[W319 02:48:32.822182743 ProcessGroupNCCL.cpp:4561] [PG ID 0 PG GUID 0 Rank 0]  using GPU 0 to perform barrier as devices used by this process are currently unknown. This can potentially cause a hang if this rank to GPU mapping is incorrect. Specify device_ids in barrier() to force use of a particular device, or call init_process_group() with a device_id.
+generating validation video:   0%|          | 0/1 [00:00<?, ?it/s]generating validation video:   0%|          | 0/1 [00:00<?, ?it/s]generating validation video:   0%|          | 0/1 [00:00<?, ?it/s]generating validation video:   0%|          | 0/1 [00:00<?, ?it/s]generating validation video: 100%|██████████| 1/1 [00:00<00:00,  1.26it/s]generating validation video: 100%|██████████| 1/1 [00:00<00:00,  1.26it/s]
+generating validation video: 100%|██████████| 1/1 [00:00<00:00,  1.26it/s]generating validation video: 100%|██████████| 1/1 [00:00<00:00,  1.26it/s]
+generating validation video: 100%|██████████| 1/1 [00:00<00:00,  1.10it/s]generating validation video: 100%|██████████| 1/1 [00:00<00:00,  1.10it/s]
+generating validation video: 100%|██████████| 1/1 [00:00<00:00,  1.09it/s]generating validation video: 100%|██████████| 1/1 [00:00<00:00,  1.09it/s]
+Starting epoch 0
+Epoch 0:   0%|          | 0/200 [00:00<?, ?it/s]Mem usage at before generator fwd: 3708.56787109375
+Mem usage at before teacher fwd: 3729.501953125
+Mem usage at before student fwd: 3717.1376953125
+Mem usage at student update: 3896.15576171875
+Mem usage at before generator fwd: 3896.15576171875
+Mem usage at before teacher fwd: 41893.89990234375
+Epoch 0:   0%|          | 0/200 [00:06<?, ?it/s]
+[rank1]: Traceback (most recent call last):
+[rank1]:   File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 461, in <module>
+[rank1]:     main()
+[rank1]:   File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 453, in main
+[rank1]:     trainer.train()
+[rank1]:   File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 360, in train
+[rank1]:     student_loss, generator_loss = self.train_step()
+[rank1]:                                    ^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 315, in train_step
+[rank1]:     teacher_score = self.diffuse(
+[rank1]:                     ^^^^^^^^^^^^^
+[rank1]:   File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 246, in diffuse
+[rank1]:     output = self.engine(
+[rank1]:              ^^^^^^^^^^^^
+[rank1]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank1]:     return self._call_impl(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank1]:     return forward_call(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/deepspeed/utils/nvtx.py", line 18, in wrapped_fn
+[rank1]:     ret_val = func(*args, **kwargs)
+[rank1]:               ^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/deepspeed/runtime/engine.py", line 1987, in forward
+[rank1]:     loss = self.module(*inputs, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank1]:     return self._call_impl(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank1]:     return forward_call(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/peft/peft_model.py", line 849, in forward
+[rank1]:     return self.get_base_model()(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank1]:     return self._call_impl(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank1]:     return forward_call(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/diffusers/models/transformers/cogvideox_transformer_3d.py", line 503, in forward
+[rank1]:     hidden_states, encoder_hidden_states = block(
+[rank1]:                                            ^^^^^^
+[rank1]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank1]:     return self._call_impl(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank1]:     return forward_call(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/diffusers/models/transformers/cogvideox_transformer_3d.py", line 132, in forward
+[rank1]:     attn_hidden_states, attn_encoder_hidden_states = self.attn1(
+[rank1]:                                                      ^^^^^^^^^^^
+[rank1]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank1]:     return self._call_impl(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank1]:     return forward_call(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/diffusers/models/attention_processor.py", line 588, in forward
+[rank1]:     return self.processor(
+[rank1]:            ^^^^^^^^^^^^^^^
+[rank1]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/diffusers/models/attention_processor.py", line 2843, in __call__
+[rank1]:     key = attn.norm_k(key)
+[rank1]:           ^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank1]:     return self._call_impl(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank1]:     return forward_call(*args, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/normalization.py", line 217, in forward
+[rank1]:     return F.layer_norm(
+[rank1]:            ^^^^^^^^^^^^^
+[rank1]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/functional.py", line 2910, in layer_norm
+[rank1]:     return torch.layer_norm(
+[rank1]:            ^^^^^^^^^^^^^^^^^
+[rank1]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 262.00 MiB. GPU 1 has a total capacity of 44.52 GiB of which 148.25 MiB is free. Including non-PyTorch memory, this process has 44.37 GiB memory in use. Of the allocated memory 42.57 GiB is allocated by PyTorch, and 1.13 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[rank2]: Traceback (most recent call last):
+[rank2]:   File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 461, in <module>
+[rank2]:     main()
+[rank2]:   File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 453, in main
+[rank2]:     trainer.train()
+[rank2]:   File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 360, in train
+[rank2]:     student_loss, generator_loss = self.train_step()
+[rank2]:                                    ^^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 315, in train_step
+[rank2]:     teacher_score = self.diffuse(
+[rank2]:                     ^^^^^^^^^^^^^
+[rank2]:   File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 246, in diffuse
+[rank2]:     output = self.engine(
+[rank2]:              ^^^^^^^^^^^^
+[rank2]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank2]:     return self._call_impl(*args, **kwargs)
+[rank2]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank2]:     return forward_call(*args, **kwargs)
+[rank2]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/deepspeed/utils/nvtx.py", line 18, in wrapped_fn
+[rank2]:     ret_val = func(*args, **kwargs)
+[rank2]:               ^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/deepspeed/runtime/engine.py", line 1987, in forward
+[rank2]:     loss = self.module(*inputs, **kwargs)
+[rank2]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank2]:     return self._call_impl(*args, **kwargs)
+[rank2]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank2]:     return forward_call(*args, **kwargs)
+[rank2]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/peft/peft_model.py", line 849, in forward
+[rank2]:     return self.get_base_model()(*args, **kwargs)
+[rank2]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank2]:     return self._call_impl(*args, **kwargs)
+[rank2]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank2]:     return forward_call(*args, **kwargs)
+[rank2]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/diffusers/models/transformers/cogvideox_transformer_3d.py", line 503, in forward
+[rank2]:     hidden_states, encoder_hidden_states = block(
+[rank2]:                                            ^^^^^^
+[rank2]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank2]:     return self._call_impl(*args, **kwargs)
+[rank2]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank2]:     return forward_call(*args, **kwargs)
+[rank2]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/diffusers/models/transformers/cogvideox_transformer_3d.py", line 132, in forward
+[rank2]:     attn_hidden_states, attn_encoder_hidden_states = self.attn1(
+[rank2]:                                                      ^^^^^^^^^^^
+[rank2]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank2]:     return self._call_impl(*args, **kwargs)
+[rank2]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank2]:     return forward_call(*args, **kwargs)
+[rank2]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/diffusers/models/attention_processor.py", line 588, in forward
+[rank2]:     return self.processor(
+[rank2]:            ^^^^^^^^^^^^^^^
+[rank2]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/diffusers/models/attention_processor.py", line 2843, in __call__
+[rank2]:     key = attn.norm_k(key)
+[rank2]:           ^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank2]:     return self._call_impl(*args, **kwargs)
+[rank2]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank2]:     return forward_call(*args, **kwargs)
+[rank2]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/normalization.py", line 217, in forward
+[rank2]:     return F.layer_norm(
+[rank2]:            ^^^^^^^^^^^^^
+[rank2]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/functional.py", line 2910, in layer_norm
+[rank2]:     return torch.layer_norm(
+[rank2]:            ^^^^^^^^^^^^^^^^^
+[rank2]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 262.00 MiB. GPU 2 has a total capacity of 44.52 GiB of which 148.25 MiB is free. Including non-PyTorch memory, this process has 44.37 GiB memory in use. Of the allocated memory 42.57 GiB is allocated by PyTorch, and 1.13 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+Traceback (most recent call last):
+  File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 461, in <module>
+    main()
+  File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 453, in main
+    trainer.train()
+  File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 360, in train
+    student_loss, generator_loss = self.train_step()
+                                   ^^^^^^^^^^^^^^^^^
+  File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 315, in train_step
+    teacher_score = self.diffuse(
+                    ^^^^^^^^^^^^^
+  File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 246, in diffuse
+    output = self.engine(
+             ^^^^^^^^^^^^
+  File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/deepspeed/utils/nvtx.py", line 18, in wrapped_fn
+    ret_val = func(*args, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/deepspeed/runtime/engine.py", line 1987, in forward
+    loss = self.module(*inputs, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/peft/peft_model.py", line 849, in forward
+    return self.get_base_model()(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/diffusers/models/transformers/cogvideox_transformer_3d.py", line 503, in forward
+    hidden_states, encoder_hidden_states = block(
+                                           ^^^^^^
+  File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/diffusers/models/transformers/cogvideox_transformer_3d.py", line 132, in forward
+    attn_hidden_states, attn_encoder_hidden_states = self.attn1(
+                                                     ^^^^^^^^^^^
+  File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/diffusers/models/attention_processor.py", line 588, in forward
+    return self.processor(
+           ^^^^^^^^^^^^^^^
+  File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/diffusers/models/attention_processor.py", line 2843, in __call__
+    key = attn.norm_k(key)
+          ^^^^^^^^^^^^^^^^
+  File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/normalization.py", line 217, in forward
+    return F.layer_norm(
+           ^^^^^^^^^^^^^
+  File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/functional.py", line 2910, in layer_norm
+    return torch.layer_norm(
+           ^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 262.00 MiB. GPU 0 has a total capacity of 44.52 GiB of which 148.25 MiB is free. Including non-PyTorch memory, this process has 44.37 GiB memory in use. Of the allocated memory 42.57 GiB is allocated by PyTorch, and 1.13 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 461, in <module>
+[rank0]:     main()
+[rank0]:   File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 453, in main
+[rank0]:     trainer.train()
+[rank0]:   File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 360, in train
+[rank0]:     student_loss, generator_loss = self.train_step()
+[rank0]:                                    ^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 315, in train_step
+[rank0]:     teacher_score = self.diffuse(
+[rank0]:                     ^^^^^^^^^^^^^
+[rank0]:   File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 246, in diffuse
+[rank0]:     output = self.engine(
+[rank0]:              ^^^^^^^^^^^^
+[rank0]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank0]:     return forward_call(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/deepspeed/utils/nvtx.py", line 18, in wrapped_fn
+[rank0]:     ret_val = func(*args, **kwargs)
+[rank0]:               ^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/deepspeed/runtime/engine.py", line 1987, in forward
+[rank0]:     loss = self.module(*inputs, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank0]:     return forward_call(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/peft/peft_model.py", line 849, in forward
+[rank0]:     return self.get_base_model()(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank0]:     return forward_call(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/diffusers/models/transformers/cogvideox_transformer_3d.py", line 503, in forward
+[rank0]:     hidden_states, encoder_hidden_states = block(
+[rank0]:                                            ^^^^^^
+[rank0]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank0]:     return forward_call(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/diffusers/models/transformers/cogvideox_transformer_3d.py", line 132, in forward
+[rank0]:     attn_hidden_states, attn_encoder_hidden_states = self.attn1(
+[rank0]:                                                      ^^^^^^^^^^^
+[rank0]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank0]:     return forward_call(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/diffusers/models/attention_processor.py", line 588, in forward
+[rank0]:     return self.processor(
+[rank0]:            ^^^^^^^^^^^^^^^
+[rank0]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/diffusers/models/attention_processor.py", line 2843, in __call__
+[rank0]:     key = attn.norm_k(key)
+[rank0]:           ^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank0]:     return forward_call(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/normalization.py", line 217, in forward
+[rank0]:     return F.layer_norm(
+[rank0]:            ^^^^^^^^^^^^^
+[rank0]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/functional.py", line 2910, in layer_norm
+[rank0]:     return torch.layer_norm(
+[rank0]:            ^^^^^^^^^^^^^^^^^
+[rank0]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 262.00 MiB. GPU 0 has a total capacity of 44.52 GiB of which 148.25 MiB is free. Including non-PyTorch memory, this process has 44.37 GiB memory in use. Of the allocated memory 42.57 GiB is allocated by PyTorch, and 1.13 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[rank3]: Traceback (most recent call last):
+[rank3]:   File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 461, in <module>
+[rank3]:     main()
+[rank3]:   File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 453, in main
+[rank3]:     trainer.train()
+[rank3]:   File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 360, in train
+[rank3]:     student_loss, generator_loss = self.train_step()
+[rank3]:                                    ^^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 315, in train_step
+[rank3]:     teacher_score = self.diffuse(
+[rank3]:                     ^^^^^^^^^^^^^
+[rank3]:   File "/home/pawan/code-bases/cogvideo_distilation/test.py", line 246, in diffuse
+[rank3]:     output = self.engine(
+[rank3]:              ^^^^^^^^^^^^
+[rank3]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank3]:     return self._call_impl(*args, **kwargs)
+[rank3]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank3]:     return forward_call(*args, **kwargs)
+[rank3]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/deepspeed/utils/nvtx.py", line 18, in wrapped_fn
+[rank3]:     ret_val = func(*args, **kwargs)
+[rank3]:               ^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/deepspeed/runtime/engine.py", line 1987, in forward
+[rank3]:     loss = self.module(*inputs, **kwargs)
+[rank3]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank3]:     return self._call_impl(*args, **kwargs)
+[rank3]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank3]:     return forward_call(*args, **kwargs)
+[rank3]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/peft/peft_model.py", line 849, in forward
+[rank3]:     return self.get_base_model()(*args, **kwargs)
+[rank3]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank3]:     return self._call_impl(*args, **kwargs)
+[rank3]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank3]:     return forward_call(*args, **kwargs)
+[rank3]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/diffusers/models/transformers/cogvideox_transformer_3d.py", line 503, in forward
+[rank3]:     hidden_states, encoder_hidden_states = block(
+[rank3]:                                            ^^^^^^
+[rank3]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank3]:     return self._call_impl(*args, **kwargs)
+[rank3]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank3]:     return forward_call(*args, **kwargs)
+[rank3]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/diffusers/models/transformers/cogvideox_transformer_3d.py", line 132, in forward
+[rank3]:     attn_hidden_states, attn_encoder_hidden_states = self.attn1(
+[rank3]:                                                      ^^^^^^^^^^^
+[rank3]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank3]:     return self._call_impl(*args, **kwargs)
+[rank3]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank3]:     return forward_call(*args, **kwargs)
+[rank3]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/diffusers/models/attention_processor.py", line 588, in forward
+[rank3]:     return self.processor(
+[rank3]:            ^^^^^^^^^^^^^^^
+[rank3]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/diffusers/models/attention_processor.py", line 2843, in __call__
+[rank3]:     key = attn.norm_k(key)
+[rank3]:           ^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank3]:     return self._call_impl(*args, **kwargs)
+[rank3]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+[rank3]:     return forward_call(*args, **kwargs)
+[rank3]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/modules/normalization.py", line 217, in forward
+[rank3]:     return F.layer_norm(
+[rank3]:            ^^^^^^^^^^^^^
+[rank3]:   File "/home/pawan/miniconda3/envs/ml/lib/python3.12/site-packages/torch/nn/functional.py", line 2910, in layer_norm
+[rank3]:     return torch.layer_norm(
+[rank3]:            ^^^^^^^^^^^^^^^^^
+[rank3]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 262.00 MiB. GPU 3 has a total capacity of 44.52 GiB of which 148.25 MiB is free. Including non-PyTorch memory, this process has 44.37 GiB memory in use. Of the allocated memory 42.57 GiB is allocated by PyTorch, and 1.13 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[1;34mwandb[0m: 
+[1;34mwandb[0m: 🚀 View run [33mtest-8[0m at: [34mhttps://wandb.ai/SiD_pawan/CogVideoX-SiD-Distillation/runs/d5z0jqa0[0m
+[1;34mwandb[0m: Find logs at: [1;35mwandb/run-20250319_024831-d5z0jqa0/logs[0m
+[rank0]:[W319 02:48:41.645676819 ProcessGroupNCCL.cpp:1496] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
+[2025-03-19 02:48:42,551] [INFO] [launch.py:319:sigkill_handler] Killing subprocess 3721586
+[2025-03-19 02:48:42,551] [INFO] [launch.py:319:sigkill_handler] Killing subprocess 3721587
+[2025-03-19 02:48:42,651] [INFO] [launch.py:319:sigkill_handler] Killing subprocess 3721588
+[2025-03-19 02:48:42,826] [INFO] [launch.py:319:sigkill_handler] Killing subprocess 3721589
+[2025-03-19 02:48:42,869] [ERROR] [launch.py:325:sigkill_handler] ['/home/pawan/miniconda3/envs/ml/bin/python', '-u', 'test.py', '--local_rank=3'] exits with return code = 1

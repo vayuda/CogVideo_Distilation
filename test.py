@@ -4,6 +4,7 @@ import time
 import wandb
 from tqdm import tqdm
 import deepspeed
+from torch.amp import autocast, GradScaler
 import torch
 from torch.utils.data import Dataset, DataLoader
 import torch.distributed as dist
@@ -34,16 +35,23 @@ class VideoTrainer:
         self.student_gen_train_ratio = config.get("student_gen_train_ratio", 1)
         self.ckpt_save_path = config.get("ckpt_save_path", None)
         self.pipeline_type = config.get("pipeline_type", "t2v") # or i2v
+
         # Set up schedulers
         self.scheduler = CogVideoXDDIMScheduler.from_pretrained(config["model"], subfolder="scheduler")
         self.scheduler.set_timesteps(self.scheduler.config.num_train_timesteps)
         self.generator_timesteps = torch.tensor([int(config.get("generator_one_step_time", 999) * (1-i/self.config.get("student_timesteps",1))) for i in range(self.student_timesteps)],dtype=torch.int32)
         self.training_dtype = torch.float16
         print(f"Training with {self.training_dtype}")
+
         # Setup distributed training
         self.setup_distributed()
+
+        # Setup PyTorch AMP GradScaler
+        # self.scaler = GradScaler("cuda",init_scale=1.0, growth_interval=100)
+
         # Initialize models, optimizers, loss
         self.setup_models()
+
         # load hardcoded target data
         self.load_data()
         self.global_step = 0
@@ -101,15 +109,11 @@ class VideoTrainer:
         student_param_size = sum(p.numel() * p.element_size() for p in student_params) / (1024 * 1024)
         generator_param_size = sum(p.numel() * p.element_size() for p in generator_params) / (1024 * 1024)
 
-
-
-        # Configure DeepSpeed Zero2 Config
+        # Configure DeepSpeed config without AMP (we'll use PyTorch's AMP instead)
         ds_config = {
-            "amp":{
-                "enabled": True
-            },
+            # Remove AMP section to disable DeepSpeed's AMP
             "train_micro_batch_size_per_gpu": 1,
-            "gradient_accumulation_steps": 4,
+            "gradient_accumulation_steps": self.accumulation_steps,
             "optimizer": {
                 "type": "AdamW",
                 "params": {
@@ -223,33 +227,38 @@ class VideoTrainer:
         self.mem(f"before {model_name} fwd")
         if model_name == "generator":
             self.engine.module.set_adapter("generator")
-        elif model_name == "student"
+        elif model_name == "student":
             self.engine.module.set_adapter("student")
         else:
             self.engine.module.disable_adapter()
-        if set_grad:
-            output = self.engine(
-                hidden_states=latent,
-                encoder_hidden_states=prompt,
-                timestep=time_step,
-                return_dict=False,
-            )[0]
-        else:
-            with torch.inference_mode():
+
+        # Use PyTorch's autocast for mixed precision
+        with autocast("cuda"):
+            if set_grad:
                 output = self.engine(
                     hidden_states=latent,
                     encoder_hidden_states=prompt,
                     timestep=time_step,
                     return_dict=False,
                 )[0]
-        if cfg:
-            unc,cond = output.chunk(2)
-            return unc + self.guidance_scale * (cond - unc)
-        else:
-            return output
+            else:
+                with torch.inference_mode():
+                    output = self.engine(
+                        hidden_states=latent,
+                        encoder_hidden_states=prompt,
+                        timestep=time_step,
+                        return_dict=False,
+                    )[0]
+            if cfg:
+                unc, cond = output.chunk(2)
+                return unc + self.guidance_scale * (cond - unc)
+            else:
+                return output
 
     def train_step(self):
         total_student_loss = 0
+
+        # Generate inputs
         (
             latent,
             noise,
@@ -260,62 +269,74 @@ class VideoTrainer:
             ofs_emb
         ) = self.prepare_model_inputs()
 
-        # Generator forward pass
-        latent_model_input = torch.zeros_like(latent)
-        latent_model_input = self.scheduler.add_noise(latent_model_input, noise, generator_timestep)
-        noise_pred = self.diffuse("generator", False, latent_model_input, positive_prompt, generator_timestep)
-        xg = self.scheduler.step(noise_pred, generator_timestep[0], latent, return_dict=False)[1]
-        xt = self.scheduler.add_noise(xg.detach(), noise, timesteps)
-        # Teacher forward pass (always in eval mode)
-        teacher_score = self.diffuse(
-            "teacher",
-            False,
-            torch.cat([xt, xt], dim=0),
-            torch.cat([negative_prompt,positive_prompt],dim=0),
-            timesteps,
-            cfg=True
-        )
-        # student forward pass and update
-        student_score = self.diffuse(
-            "student",
-            True,
-            xt,
-            positive_prompt,
-            timesteps,
-            cfg=False
-        )
-        student_loss = self.student_loss(xg.detach(), noise, timesteps, student_score)
+        # Generator forward pass with autocast
+        with autocast("cuda"):
+            latent_model_input = torch.zeros_like(latent)
+            latent_model_input = self.scheduler.add_noise(latent_model_input, noise, generator_timestep)
+            noise_pred = self.diffuse("generator", False, latent_model_input, positive_prompt, generator_timestep)
+            xg = self.scheduler.step(noise_pred, generator_timestep[0], latent, return_dict=False)[1]
+            xt = self.scheduler.add_noise(xg.detach(), noise, timesteps)
+
+            # Teacher forward pass (always in eval mode)
+            teacher_score = self.diffuse(
+                "teacher",
+                False,
+                torch.cat([xt, xt], dim=0),
+                torch.cat([negative_prompt, positive_prompt], dim=0),
+                timesteps,
+                cfg=True
+            )
+
+            # Student forward pass and update
+            student_score = self.diffuse(
+                "student",
+                True,
+                xt,
+                positive_prompt,
+                timesteps,
+                cfg=False
+            )
+
+            student_loss = self.student_loss(xg.detach(), noise, timesteps, student_score)
+
         total_student_loss = student_loss.detach().item()
 
         self.engine.backward(student_loss)
         self.engine.step()
-        self.mem("student update")
+        self.mem("student update~")
 
-        # update generator
-        noise_pred = self.diffuse("generator", True, latent_model_input, positive_prompt, generator_timestep)
-        xg = self.scheduler.step(noise_pred, generator_timestep[0], latent, return_dict=False)[1]
-        xt = self.scheduler.add_noise(xg.detach(), noise, timesteps)
-        # Teacher forward pass (always in eval mode)
-        teacher_score = self.diffuse(
-            "teacher",
-            False,
-            torch.cat([xt, xt], dim=0),
-            torch.cat([negative_prompt,positive_prompt],dim=0),
-            timesteps,
-            cfg=True
-        )
-        # student forward pass and update
-        student_score = self.diffuse(
-            "student",
-            False,
-            xt,
-            positive_prompt,
-            timesteps,
-            cfg=False
-        )
-        generator_loss = self.generator_loss(teacher_score, student_score, xg)
+        # Update generator
+        with autocast("cuda"):
+            noise_pred = self.diffuse("generator", True, latent_model_input, positive_prompt, generator_timestep)
+            xg = self.scheduler.step(noise_pred, generator_timestep[0], latent, return_dict=False)[1]
+            xt = self.scheduler.add_noise(xg.detach(), noise, timesteps)
+
+            # Teacher forward pass (always in eval mode)
+            teacher_score = self.diffuse(
+                "teacher",
+                False,
+                torch.cat([xt, xt], dim=0),
+                torch.cat([negative_prompt, positive_prompt], dim=0),
+                timesteps,
+                cfg=True
+            )
+
+            # Student forward pass
+            student_score = self.diffuse(
+                "student",
+                False,
+                xt,
+                positive_prompt,
+                timesteps,
+                cfg=False
+            )
+
+            generator_loss = self.generator_loss(teacher_score, student_score, xg)
+
         total_generator_loss = generator_loss.detach().item()
         self.engine.module.set_adapter("generator")
+
+        # Use PyTorch's GradScaler for backward
         self.engine.backward(generator_loss)
         self.engine.step()
 
@@ -327,6 +348,7 @@ class VideoTrainer:
         generator_samples.append(self.generate_latent())
         torch.save(torch.cat(generator_samples, dim=0),
               f"{self.ckpt_save_path}/gen_latents_step_latest.pt")
+
         for epoch in range(self.num_epochs):
             if self.is_main_process:
                 print(f"Starting epoch {epoch}")
@@ -352,8 +374,15 @@ class VideoTrainer:
 
             # On epoch end:
             if self.ckpt_save_path is not None:
+                # Save using DeepSpeed checkpoint mechanism
                 self.engine.save_checkpoint(self.ckpt_save_path, f"model")
+
+                # Save additional data including scaler state
                 if self.is_main_process:
+                    torch.save({
+                        'global_step': self.global_step,
+                    }, f"{self.ckpt_save_path}/amp_state.pt")
+
                     generator_samples.append(self.generate_latent())
                     torch.save(torch.cat(generator_samples, dim=0),
                           f"{self.ckpt_save_path}/gen_latents_step_latest.pt")
@@ -368,7 +397,8 @@ class VideoTrainer:
             generator_timestep,
             ofs_emb
         ) = self.prepare_model_inputs()
-        with torch.inference_mode():
+
+        with torch.inference_mode(), autocast("cuda"):
             self.engine.module.set_adapter("generator")
             for t in tqdm(self.generator_timesteps, desc="generating validation video"):
                 latent_model_input = torch.zeros_like(latent)
@@ -396,7 +426,7 @@ class VideoTrainer:
         # Save DeepSpeed checkpoint states
         self.engine.save_checkpoint(checkpoint_dir, "model")
 
-        # Save additional data
+        # Save additional data including the scaler state
         torch.save({
             'global_step': self.global_step,
         }, f"{self.ckpt_save_path}/ckpt_latest_meta.pt")
@@ -410,7 +440,7 @@ class VideoTrainer:
         # Load DeepSpeed checkpoints
         _, client_state = self.engine.load_checkpoint(f"{path}/ds_checkpoints", "model")
 
-        # Load additional metadata
+        # Load additional metadata including scaler state
         meta = torch.load(f"{path}/ckpt_latest_meta.pt")
         self.global_step = meta['global_step']
 
