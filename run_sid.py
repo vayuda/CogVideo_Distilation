@@ -116,13 +116,13 @@ class VideoTrainer:
 
     def load_data(self):
         self.positive_prompt = torch.load(
-            "data/prompt_embed_2b.pt",
+            "data/prompt_embed_wan.pt",
             weights_only=True,
             map_location="cpu"
         ).to(self.device)
 
         self.negative_prompt = torch.load(
-            "data/negative_prompt_embed_2b.pt",
+            "data/negative_prompt_embed_wan.pt",
             weights_only=True,
             map_location="cpu"
         ).to(self.device)
@@ -307,7 +307,7 @@ class VideoTrainer:
 
     def generate_latent(self):
         latent = torch.randn((1,16,21,60,104)).to(self.device)
-        self.scheduler.set_timesteps(50, device=self.device)
+        self.scheduler.set_timesteps(25, device=self.device)
         with torch.inference_mode():
             self.dit.set_adapter("generator")
             for t in tqdm(self.scheduler.timesteps, desc="generating validation video"):
