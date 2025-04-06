@@ -1,31 +1,35 @@
-# model: "THUDM/CogVideoX-5b-I2V"
-model: "THUDM/CogVideoX-2b"
-# hyper params
+model: "Wan-AI/Wan2.1-T2V-1.3B-Diffusers"
+# model: "THUDM/CogVideoX-2b"
+
+# training params
+num_epochs: 10
 gradient_accumulation_steps: 1
 batch_size: 1
 dataset_size: 200
 gradient_clip_val: 1.0
-teacher_timesteps: 50
-student_timesteps: 1
-tmin: 20
-tmax: 980
-num_epochs: 10
-student_gen_train_ratio: 1
-guidance_scale: 7.5
-generator_one_step_time: 999
-height: 480
-width: 720
-fps: 8
-num_frames: 49
-
 generator_lr: 0.00001
-student_lr: 0.00001
-
+fake_score_lr: 0.00001
 lora:
     r: 128
     lora_alpha: 64
     target_modules: ["to_q", "to_k", "to_v"]
 
+# SID timestep hparams
+generator_timesteps: 1
+generator_one_step_time: 999
+tmin: 20
+tmax: 800
+
+# hyperparameters
+guidance_scale: 5.0
+
+# video params
+height: 480
+width: 832
+fps: 15
+num_frames: 81
+
+# saving/logging
 use_wandb: True
 wandb_project: "CogVideoX-SiD-Distillation"
 wandb_run_name: "test-8"

@@ -2,28 +2,47 @@ import copy
 import yaml
 import time
 import wandb
-from tqdm import tqdm
-import deepspeed
-import torch
-from torch.utils.data import Dataset, DataLoader
-import torch.distributed as dist
 import os
 import gc
-from diffusers import CogVideoXTransformer3DModel, CogVideoXDDIMScheduler
-from diffusers.models.embeddings import get_3d_rotary_pos_embed
-from diffusers.training_utils import compute_snr
-from peft import LoraConfig, get_peft_model
+from tqdm import tqdm
+import torch
+from torch.utils.data import Dataset, DataLoader
+from lightning.fabric import Fabric
+import wandb
+from wandb.integration.lightning.fabric import WandbLogger
 from torch.utils.checkpoint import checkpoint_sequential
 
+from diffusers.models import WanTransformer3DModel
+from diffusers.schedulers import FlowMatchEulerDiscreteScheduler
+from diffusers.training_utils import compute_snr
+from peft import LoraConfig, get_peft_model
+
+# Create a random latent dataset
+class LatentDataset(Dataset):
+    def __init__(self, num_samples, latent_shape, positive_prompt, negative_prompt, device=None):
+        self.num_samples = num_samples
+        self.latent_shape = latent_shape
+        self.positive_prompt = positive_prompt
+        self.negative_prompt = negative_prompt
+        self.device = device
+        self.video_latents = [torch.randn(self.latent_shape) for _ in range(num_samples)]
+
+    def __len__(self):
+        return self.num_samples
+
+    def __getitem__(self, idx):
+        # Generate random latents and prompts for each item
+        return self.video_latents[idx]
+
 class VideoTrainer:
-    def __init__(self, config):
+    def __init__(self, config, fabric):
         # Load configuration
         self.config = config
         self.batch_size = config.get("batch_size", 1)
+        self.dataset_size = self.config.get("dataset_size", 1000)
         self.generator_lr = config.get("generator_lr", 1e-5)
-        self.student_lr = config.get("student_lr", 1e-5)
-        self.teacher_timesteps = config.get("teacher_timesteps", 50)
-        self.student_timesteps = config.get("student_timesteps", 1)
+        self.fake_score_lr = config.get("student_lr", 1e-5)
+        self.generator_timesteps = config.get("generator_timesteps", 1)
         self.guidance_scale = config.get("guidance_scale", 7.5)
         self.height = config.get("height", 480)
         self.width = config.get("width", 720)
@@ -34,51 +53,34 @@ class VideoTrainer:
         self.student_gen_train_ratio = config.get("student_gen_train_ratio", 1)
         self.ckpt_save_path = config.get("ckpt_save_path", None)
         self.pipeline_type = config.get("pipeline_type", "t2v") # or i2v
-        # Set up schedulers
-        self.scheduler = CogVideoXDDIMScheduler.from_pretrained(config["model"], subfolder="scheduler")
+        # Set up scheduler
+        self.scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(config["model"], subfolder="scheduler")
         self.scheduler.set_timesteps(self.scheduler.config.num_train_timesteps)
-        self.generator_timesteps = torch.tensor([int(config.get("generator_one_step_time", 999) * (1-i/self.config.get("student_timesteps",1))) for i in range(self.student_timesteps)],dtype=torch.int32)
-        self.training_dtype = torch.float16
-        print(f"Training with {self.training_dtype}")
+        nt = self.config.get("generator_timesteps", 1)
+        self.generator_timesteps = torch.tensor(
+            [int(config.get("generator_one_step_time", 999) * (1-i/nt)) for i in range(nt)],
+            dtype=torch.int32
+        )
+
         # Setup distributed training
-        self.setup_distributed()
+        self.setup_distributed(fabric)
+
         # Initialize models, optimizers, loss
         self.setup_models()
+
         # load hardcoded target data
         self.load_data()
         self.global_step = 0
 
-    def setup_distributed(self):
-        """
-        Sets up distributed training environment.
-        This version works with the DeepSpeed launcher which initializes process groups.
-        """
-        # When launched with deepspeed, LOCAL_RANK is set
-        if 'LOCAL_RANK' in os.environ:
-            self.local_rank = int(os.environ['LOCAL_RANK'])
-            self.world_size = int(os.environ.get("WORLD_SIZE", 1))
-            self.is_main_process = (self.local_rank == 0)
-            self.device = torch.device(f"cuda:{self.local_rank}")
-
-            # Set the device for this process
-            torch.cuda.set_device(self.local_rank)
-
-        else:
-            # Fallback for single-GPU operation or when not using DeepSpeed launcher
-            self.local_rank = 0
-            self.world_size = 1
-            self.is_main_process = True
-            self.device = torch.device("cuda:0")
-
-        print(f"Process rank: {self.local_rank}/{self.world_size}, device: {self.device}")
+    def setup_distributed(self, fabric):
+        self.device = fabric.device
+        self.fabric = fabric
 
     def setup_models(self):
         # Create models
-        # i2v@@@model setup
-        self.dit = CogVideoXTransformer3DModel.from_pretrained(
+        self.dit = WanTransformer3DModel.from_pretrained(
             self.config["model"], subfolder="transformer",
             attn_implementation="flash_attention_2",
-            torch_dtype=torch.float16
         )
 
         # Disable gradients for non-LoRA params
@@ -88,104 +90,67 @@ class VideoTrainer:
         # Setup LoRA
         lora_config = LoraConfig(**self.config['lora'])
         self.dit = get_peft_model(self.dit, lora_config)
-        self.dit.add_adapter("generator", lora_config)
-        self.dit.add_adapter("student", lora_config)
+        self.dit.add_adapter("generator", lora_config) # one step generator
+        self.dit.add_adapter("fsm", lora_config) # fake score model
 
         # Retrieve optimizable parameters
         self.dit.set_adapter("generator")
         generator_params = [p for p in self.dit.parameters() if p.requires_grad]
+        generator_optimizer = torch.optim.AdamW(generator_params, lr=self.generator_lr)
+        self.dit.set_adapter("fsm")
+        fake_score_model_params = [p for p in self.dit.parameters() if p.requires_grad]
+        fake_score_optimizer = torch.optim.AdamW(fake_score_model_params, lr=self.fake_score_lr)
+        # setup model and optimizers for distributed training with fabric
+        (
+            self.dit,
+            self.generator_optimizer,
+            self.fsm_optimizer
+        ) = self.fabric.setup(self.dit, generator_optimizer, fake_score_optimizer)
 
-        self.dit.set_adapter("student")
-        student_params = [p for p in self.dit.parameters() if p.requires_grad]
-
-        student_param_size = sum(p.numel() * p.element_size() for p in student_params) / (1024 * 1024)
-        generator_param_size = sum(p.numel() * p.element_size() for p in generator_params) / (1024 * 1024)
-
-
-
-        # Configure DeepSpeed Zero2 Config
-        ds_config = {
-            "amp":{
-                "enabled": True
-            },
-            "train_micro_batch_size_per_gpu": 1,
-            "gradient_accumulation_steps": 4,
-            "optimizer": {
-                "type": "AdamW",
-                "params": {
-                    "lr": self.generator_lr,
-                    "betas": [0.9, 0.999],
-                    "eps": 1e-8,
-                    "weight_decay": 0.01
-                }
-            }
-        }
-
-        self.engine = deepspeed.initialize(
-            model = self.dit,
-            config = ds_config,
-            model_parameters = student_params + generator_params
-        )[0]
-
-        if self.is_main_process:
-            print(self.dit.active_adapters)
-            print(f"Found {len(student_params)} student params that require grad: {student_param_size:.2f}MB")
-            print(f"Found {len(generator_params)} generator params that require grad: {generator_param_size:.2f}MB")
-
-            if self.config.get("use_wandb", False):
-                wandb.init(
-                    entity=self.config.get("wandb_entity", "SiD_pawan"),
-                    project=self.config.get("wandb_project", "CogVideoX-SiD-Distillation"),
-                    name=self.config.get("wandb_run_name", "test"),
-                    group="multi-gpu",
-                    config=self.config
-                )
-                wandb.watch(self.engine.module)
-        deepspeed.comm.barrier()
+        fake_score_model_size = sum(p.numel() * p.element_size() for p in fake_score_model_params) / (1024 * 1024)
+        generator_size = sum(p.numel() * p.element_size() for p in generator_params) / (1024 * 1024)
+        self.fabric.loggers[0].watch(self.dit)
+        if self.fabric.is_global_zero:
+            print(f"Found {len(fake_score_model_params)} fake score model params that require grad: {fake_score_model_size:.2f}MB")
+            print(f"Found {len(generator_params)} generator params that require grad: {generator_size:.2f}MB")
 
     def load_data(self):
-        video_latent = torch.load(
-            "data/horse_2b_latent.pt",
-            weights_only=True,
-            map_location="cpu"
-        ).to(self.device).to(self.training_dtype)
-
-        image_latent = torch.load(
-            "data/horse_2b_latent_image.pt",
-            weights_only=True,
-            map_location="cpu"
-        ).to(self.device).to(self.training_dtype)
-
-        positive_prompt = torch.load(
+        self.positive_prompt = torch.load(
             "data/prompt_embed_2b.pt",
             weights_only=True,
             map_location="cpu"
-        ).to(self.device).to(self.training_dtype)
+        ).to(self.device)
 
-        negative_prompt = torch.load(
+        self.negative_prompt = torch.load(
             "data/negative_prompt_embed_2b.pt",
             weights_only=True,
             map_location="cpu"
-        ).to(self.device).to(self.training_dtype)
-
-        # Create dataset with repeated tensors
-        self.batch = (video_latent, image_latent, positive_prompt, negative_prompt)
+        ).to(self.device)
+        self.cfg_prompt = torch.cat([self.negative_prompt,self.positive_prompt],dim=0).to(self.device)
+        latent_shape = (16,21,60,104)
+        dataset = LatentDataset(
+            self.dataset_size,
+            latent_shape,
+            self.positive_prompt,
+            self.negative_prompt,
+            device=self.device
+        )
+        self.dataloader = DataLoader(
+            dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=2,
+            pin_memory=True,
+            drop_last=True
+        )
+        self.batch_iterator = iter(self.dataloader)
+        self.dataloader = self.fabric.setup_dataloaders(self.dataloader)
 
     def mem(self, place, verbose=True):
-        if self.is_main_process and verbose:
+        if self.fabric.is_global_zero and verbose:
             print(f"Mem usage at {place}: {torch.cuda.memory_allocated() / 1024**2}")
 
-    def prepare_model_inputs(self):
-        video_latent, image_latent, positive_prompt, negative_prompt = self.batch
-        latent = torch.randn_like(video_latent)
-        noise = torch.randn_like(video_latent)
-        t_index = torch.randint(0, len(self.generator_timesteps), (1,))
-        generator_timestep = self.generator_timesteps[t_index].expand(video_latent.shape[0]).to(self.device)
-        timesteps = torch.randint(self.tmin, self.tmax, (video_latent.shape[0],)).to(self.device)
-        ofs_emb = None
-        return latent, noise, positive_prompt, negative_prompt, timesteps, generator_timestep, ofs_emb
-
-    def student_loss(self, xg, noise, t, fake_score):
+    def fake_score_loss(self, xg, noise, t, fake_score):
         if self.scheduler.config.prediction_type == "v_prediction":
             target = self.scheduler.get_velocity(xg, noise, t)
             loss = (fake_score-target)**2
@@ -197,23 +162,23 @@ class VideoTrainer:
         loss = loss.mean()
         return loss
 
-    def generator_loss(self, teacher_score: torch.Tensor, student_score: torch.Tensor, xg: torch.Tensor):
+    def generator_loss(self, real_score: torch.Tensor, fake_score: torch.Tensor, xg: torch.Tensor):
         alpha = 1.2
-        nan_mask = torch.isnan(teacher_score) | torch.isnan(student_score) | torch.isnan(xg)
+        nan_mask = torch.isnan(real_score) | torch.isnan(fake_score) | torch.isnan(xg)
         if torch.any(nan_mask):
             not_nan_mask = ~nan_mask
-            teacher_score = teacher_score[not_nan_mask]
-            student_score = student_score[not_nan_mask]
+            real_score = real_score[not_nan_mask]
+            fake_score = fake_score[not_nan_mask]
             xg = xg[not_nan_mask]
             print("removed nans")
-        teacher_score = teacher_score.to(torch.float32)
-        student_score = student_score.to(torch.float32)
+        real_score = real_score.to(torch.float32)
+        fake_score = fake_score.to(torch.float32)
         xg = xg.to(torch.float32)
 
         with torch.no_grad():
-            generator_weight = abs(xg - teacher_score).to(torch.float32).mean(dim=[1, 2, 3, 4], keepdim=True).clip(min=0.00001)
-        score_diff = teacher_score - student_score
-        teacher_eval = teacher_score - xg
+            generator_weight = abs(xg - real_score).to(torch.float32).mean(dim=[1, 2, 3, 4], keepdim=True).clip(min=0.00001)
+        score_diff = real_score - fake_score
+        teacher_eval = real_score - xg
         generator_loss = (score_diff) * (teacher_eval - alpha * score_diff) / generator_weight
         generator_loss = generator_loss.mean()
 
@@ -222,13 +187,13 @@ class VideoTrainer:
     def diffuse(self, model_name, set_grad, latent, prompt, time_step, cfg=False):
         self.mem(f"before {model_name} fwd")
         if model_name == "generator":
-            self.engine.module.set_adapter("generator")
-        elif model_name == "student"
-            self.engine.module.set_adapter("student")
+            self.dit.set_adapter("generator")
+        elif model_name == "fake":
+            self.dit.set_adapter("fsm")
         else:
-            self.engine.module.disable_adapter()
+            self.dit.disable_adapter()
         if set_grad:
-            output = self.engine(
+            output = self.dit(
                 hidden_states=latent,
                 encoder_hidden_states=prompt,
                 timestep=time_step,
@@ -236,7 +201,7 @@ class VideoTrainer:
             )[0]
         else:
             with torch.inference_mode():
-                output = self.engine(
+                output = self.dit(
                     hidden_states=latent,
                     encoder_hidden_states=prompt,
                     timestep=time_step,
@@ -248,184 +213,144 @@ class VideoTrainer:
         else:
             return output
 
-    def train_step(self):
+    def train_step(self, latent):
         total_student_loss = 0
-        (
-            latent,
-            noise,
-            positive_prompt,
-            negative_prompt,
-            timesteps,
-            generator_timestep,
-            ofs_emb
-        ) = self.prepare_model_inputs()
+        noise = torch.randn_like(latent)
+        t_index = torch.randint(0, len(self.generator_timesteps), (1,))
+        generator_timestep = self.generator_timesteps[t_index].expand(latent.shape[0]).to(self.device)
+        timesteps = torch.randint(self.tmin, self.tmax, (latent.shape[0],)).to(self.device)
 
         # Generator forward pass
-        latent_model_input = torch.zeros_like(latent)
-        latent_model_input = self.scheduler.add_noise(latent_model_input, noise, generator_timestep)
-        noise_pred = self.diffuse("generator", False, latent_model_input, positive_prompt, generator_timestep)
-        xg = self.scheduler.step(noise_pred, generator_timestep[0], latent, return_dict=False)[1]
-        xt = self.scheduler.add_noise(xg.detach(), noise, timesteps)
-        # Teacher forward pass (always in eval mode)
-        teacher_score = self.diffuse(
-            "teacher",
-            False,
-            torch.cat([xt, xt], dim=0),
-            torch.cat([negative_prompt,positive_prompt],dim=0),
-            timesteps,
-            cfg=True
-        )
+        self.scheduler.set_timesteps(self.generator_timesteps)
+        noise_pred = self.diffuse("generator", False, latent, self.positive_prompt, generator_timestep)
+        xg = self.scheduler.step(noise_pred, generator_timestep[0], latent, return_dict=False)[0]
+        # print(timesteps.shape, xg.shape)
+        timesteps = timesteps.view(-1, 1, 1, 1, 1)
+        xt = (1-timesteps)*xg.detach() + timesteps * noise
+
         # student forward pass and update
-        student_score = self.diffuse(
-            "student",
+        fake_score = self.diffuse(
+            "fake",
             True,
             xt,
-            positive_prompt,
+            self.positive_prompt,
             timesteps,
             cfg=False
         )
-        student_loss = self.student_loss(xg.detach(), noise, timesteps, student_score)
-        total_student_loss = student_loss.detach().item()
+        fake_model_loss = self.fake_score_loss(xg.detach(), noise, timesteps, fake_score)
+        total_student_loss = fake_model_loss.detach().item()
 
-        self.engine.backward(student_loss)
-        self.engine.step()
-        self.mem("student update")
+        self.fsm_optimizer.zero_grad()
+        self.fabric.backward(fake_model_loss)
+        self.fsm_optimizer.step()
+        self.mem("fake score model update")
 
         # update generator
-        noise_pred = self.diffuse("generator", True, latent_model_input, positive_prompt, generator_timestep)
-        xg = self.scheduler.step(noise_pred, generator_timestep[0], latent, return_dict=False)[1]
+        noise_pred = self.diffuse("generator", True, latent_model_input, self.positive_prompt, self.generator_timestep)
+        xg = self.scheduler.step(noise_pred, generator_timestep[0], latent, return_dict=False)[0]
         xt = self.scheduler.add_noise(xg.detach(), noise, timesteps)
         # Teacher forward pass (always in eval mode)
-        teacher_score = self.diffuse(
+        real_score = self.diffuse(
             "teacher",
             False,
             torch.cat([xt, xt], dim=0),
-            torch.cat([negative_prompt,positive_prompt],dim=0),
+            self.cfg_prompt,
             timesteps,
             cfg=True
         )
         # student forward pass and update
-        student_score = self.diffuse(
-            "student",
+        fake_score = self.diffuse(
+            "fake",
             False,
             xt,
-            positive_prompt,
+            self.positive_prompt,
             timesteps,
             cfg=False
         )
-        generator_loss = self.generator_loss(teacher_score, student_score, xg)
+        generator_loss = self.generator_loss(real_score, fake_score, xg)
         total_generator_loss = generator_loss.detach().item()
-        self.engine.module.set_adapter("generator")
-        self.engine.backward(generator_loss)
-        self.engine.step()
+        self.dit.set_adapter("generator")
+        self.generator_optimizer.zero_grad()
+        self.fabric.backward(generator_loss)
+        self.generator_optimizer.step()
 
         self.global_step += 1
         return total_student_loss, total_generator_loss
 
     def train(self):
         generator_samples = []
-        generator_samples.append(self.generate_latent())
-        torch.save(torch.cat(generator_samples, dim=0),
-              f"{self.ckpt_save_path}/gen_latents_step_latest.pt")
+        if self.fabric.is_global_zero:
+            generator_samples.append(self.generate_latent())
+            torch.save(torch.cat(generator_samples, dim=0),
+                f"{self.ckpt_save_path}/gen_latents_step_latest.pt")
+        self.fabric.barrier()
         for epoch in range(self.num_epochs):
-            if self.is_main_process:
-                print(f"Starting epoch {epoch}")
-                loop = tqdm(range(self.config.get("dataset_size")), desc=f"Epoch {epoch}")
-            else:
-                loop = range(self.config.get("dataset_size"))
+            for latent in tqdm(self.dataloader):
+                student_loss, generator_loss = self.train_step(latent)
 
-            for batch_idx in loop:
-                student_loss, generator_loss = self.train_step()
-
-                if self.config.get("use_wandb", False) and self.is_main_process:
+                if self.config.get("use_wandb", False) and self.fabric.is_global_zero:
                     log_dict = {
                         "step": self.global_step,
                         "epoch": epoch,
                         "student_loss": student_loss,
+                        "generator_loss": generator_loss
                     }
-
-                    # Only log generator loss when it's actually updated
-                    if self.global_step % self.student_gen_train_ratio == 0:
-                        log_dict["generator_loss"] = generator_loss
 
                     wandb.log(log_dict)
 
             # On epoch end:
-            if self.ckpt_save_path is not None:
-                self.engine.save_checkpoint(self.ckpt_save_path, f"model")
-                if self.is_main_process:
-                    generator_samples.append(self.generate_latent())
-                    torch.save(torch.cat(generator_samples, dim=0),
-                          f"{self.ckpt_save_path}/gen_latents_step_latest.pt")
+            if self.ckpt_save_path is not None and self.fabric.is_global_zero:
+                self.save_checkpoint()
+                generator_samples.append(self.generate_latent())
+                torch.save(torch.cat(generator_samples, dim=0), f"{self.ckpt_save_path}/gen_latents_step_latest.pt")
+            self.fabric.barrier()
 
     def generate_latent(self):
-        (
-            latent,
-            noise,
-            positive_prompt,
-            negative_prompt,
-            timesteps,
-            generator_timestep,
-            ofs_emb
-        ) = self.prepare_model_inputs()
+        latent = torch.randn((1,16,21,60,104)).to(self.device)
+        self.scheduler.set_timesteps(50, device=self.device)
         with torch.inference_mode():
-            self.engine.module.set_adapter("generator")
-            for t in tqdm(self.generator_timesteps, desc="generating validation video"):
-                latent_model_input = torch.zeros_like(latent)
-                latent_model_input = self.scheduler.add_noise(latent_model_input, noise, t * torch.ones(latent_model_input.shape[0], dtype=torch.long, device=self.device))
-                timestep = t * torch.ones(latent_model_input.shape[0]).to(self.device)
-                noise_pred = self.engine(
+            self.dit.set_adapter("generator")
+            for t in tqdm(self.scheduler.timesteps, desc="generating validation video"):
+                timestep = t * torch.ones(latent.shape[0]).to(self.device)
+                latent_model_input = torch.cat([latent] * 2)
+                noise_pred = self.dit(
                     hidden_states=latent_model_input,
-                    encoder_hidden_states=positive_prompt,
-                    ofs=ofs_emb,
+                    encoder_hidden_states=self.cfg_prompt,
                     timestep=timestep,
                     return_dict=False,
                 )[0]
-                out = self.scheduler.step(noise_pred, t, latent, return_dict=False)
-                latent = out[0]
-                image = out[1]
+                noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+                noise_pred = noise_pred_uncond + self.guidance_scale * (noise_pred_text - noise_pred_uncond)
+                latent = self.scheduler.step(noise_pred, t, latent, return_dict=False)[0]
 
-        return image
+        return latent
 
-    def save_checkpoint(self, generator_samples):
-        """Save model checkpoint"""
-        # DeepSpeed has its own checkpointing mechanism
-        checkpoint_dir = f"{self.ckpt_save_path}/ds_checkpoints_latest"
+    def save_checkpoint(self):
+        checkpoint_dir = f"{self.ckpt_save_path}/checkpoints_latest"
         os.makedirs(checkpoint_dir, exist_ok=True)
-
-        # Save DeepSpeed checkpoint states
-        self.engine.save_checkpoint(checkpoint_dir, "model")
-
-        # Save additional data
-        torch.save({
-            'global_step': self.global_step,
-        }, f"{self.ckpt_save_path}/ckpt_latest_meta.pt")
-
-        # Save generated samples
-        torch.save(torch.cat(generator_samples, dim=0),
-                  f"{self.ckpt_save_path}/gen_latents_step_latest.pt")
+        state = {"model": self.dit}
+        self.fabric.save(checkpoint_dir, state)
 
     def load_checkpoint(self, path):
-        """Load model checkpoint"""
-        # Load DeepSpeed checkpoints
-        _, client_state = self.engine.load_checkpoint(f"{path}/ds_checkpoints", "model")
-
-        # Load additional metadata
-        meta = torch.load(f"{path}/ckpt_latest_meta.pt")
-        self.global_step = meta['global_step']
-
+        state = {"model": self.dit}
+        self.fabric.load(path, state)
 
 def main():
     torch.set_float32_matmul_precision('high')
     config = yaml.load(open("config.yaml", "r"), Loader=yaml.FullLoader)
-    # DeepSpeed will initialize the distributed environment
-    trainer = VideoTrainer(config)
+
+    logger = WandbLogger(
+        project=config.get("wandb_project", "CogVideoX-SiD-Distillation"),
+        entity=config.get("wandb_entity", "SiD_pawan"),
+        name=config.get("wandb_run_name", "test"),
+        group="multi-gpu",
+        config=config
+    )
+    fabric = Fabric(loggers=logger, precision="16-mixed", accelerator="cuda", devices=2, strategy="ddp")
+    fabric.launch()
+
+    trainer = VideoTrainer(config, fabric)
     trainer.train()
-
-    # Cleanup wandb
-    if trainer.config.get("use_wandb", False) and trainer.is_main_process:
-        wandb.finish()
-
 
 if __name__ == "__main__":
     main()
