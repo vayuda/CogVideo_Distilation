@@ -20,7 +20,7 @@ generator_one_step_time: 999
 tmin: 20
 tmax: 800
 
-# hyperparameters
+# other hyperparameters
 guidance_scale: 5.0
 
 # video params

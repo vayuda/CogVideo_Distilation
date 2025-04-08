@@ -9,10 +9,13 @@ conda install pytorch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 pytorch-cuda=
 
 # Rest of dependencies
 conda install transformers
-conda install diffusers
 conda install lightning
 conda install peft
 conda install wandb
 conda install PyYAML
 conda install numpy
 conda install opencv-python
+
+# nightly builds for now
+pip install git+https://github.com/huggingface/diffusers
+pip install git+https://github.com/modelscope/DiffSynth-Studio

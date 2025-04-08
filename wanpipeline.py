@@ -4,7 +4,8 @@ import torch
 from transformers import AutoTokenizer, UMT5EncoderModel
 from diffusers.models import AutoencoderKLWan
 from diffusers.models import WanTransformer3DModel
-from diffusers.schedulers import FlowMatchEulerDiscreteScheduler
+# from diffusers.schedulers import FlowMatchEulerDiscreteScheduler
+from diffsynth import FlowMatchScheduler
 from diffusers.utils import export_to_video, load_image
 from diffusers.video_processor import VideoProcessor
 from tqdm import tqdm
@@ -22,7 +23,7 @@ class WanPipeline():
         pipe_dtype: torch.dtype = torch.bfloat16,
         denoising_steps: int = 50,
         guidance_scale: float = 5.0,
-        load_modules: List = []
+        load_text_encoder: bool = True,
     ):
         self.hf_name = hf_name
         self.pipe_dtype = pipe_dtype
@@ -30,10 +31,10 @@ class WanPipeline():
         self.dit = WanTransformer3DModel.from_pretrained(hf_name, subfolder="transformer", torch_dtype=pipe_dtype).to(self.device)
         self.dit.gradient_checkpointing = True
         self.vae = AutoencoderKLWan.from_pretrained(hf_name, subfolder="vae", torch_dtype=pipe_dtype).to(self.device)
-        if load_modules != [] and "text_encoder" in load_modules:
-            self.text_encoder = UMT5EncoderModel.from_pretrained(hf_name, subfolder="text_encoder", torch_dtype=pipe_dtype).to(self.device)
+        self.text_encoder = UMT5EncoderModel.from_pretrained(hf_name, subfolder="text_encoder", torch_dtype=pipe_dtype).to(self.device) if load_text_encoder else None
         self.tokenizer = AutoTokenizer.from_pretrained(hf_name, subfolder="tokenizer",)
         self.scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(hf_name, subfolder="scheduler")
+        # self.scheduler = FlowMatchScheduler(shift=3.0, sigma_min=0.0, extra_one_step=True)
         self.mem("init",print_=True)
         self.text_seq_len = 226
 
@@ -116,9 +117,10 @@ class WanPipeline():
             self.height // self.vae_scale_factor_spatial,
             self.width // self.vae_scale_factor_spatial
         )
-        print(shape)
+
 
         latent = torch.randn(shape, device=self.device, dtype=self.pipe_dtype)
+        print(latent.shape)
         if save_path is not None:
             torch.save(latent, save_path)
 
@@ -128,7 +130,6 @@ class WanPipeline():
         assert self.dit is not None, "dit is not initialized"
         latent_model_input = torch.cat([latent] * 2) if self.guidance_scale > 1.0 else latent
         timestep = t.expand(latent.shape[0]).to(self.device)
-
         self.mem("before inference")
         with torch.inference_mode():
             noise_pred = self.dit(
@@ -142,7 +143,9 @@ class WanPipeline():
             noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
             noise_pred = noise_pred_uncond + self.guidance_scale * (noise_pred_text - noise_pred_uncond)
 
-        latent = self.scheduler.step(noise_pred, t, latent, return_dict=False)[0]
+        latent = self.scheduler.step(noise_pred, t, latent, return_dict=False)
+        if not isinstance(latent, torch.Tensor):
+            latent = latent[0]
         return latent
 
     def generate(self, batch_size, prompt_embeds, denoising_steps=50):
@@ -232,30 +235,30 @@ def run_diffusers():
 if __name__ == "__main__":
     torch.set_grad_enabled(False)
     # run_diffusers()
-    pipeline = WanPipeline("Wan-AI/Wan2.1-T2V-1.3B-Diffusers", pipe_dtype=torch.float32, load_modules=["vae", "dit"])
+    pipeline = WanPipeline("Wan-AI/Wan2.1-T2V-1.3B-Diffusers", pipe_dtype=torch.float32)
     # pipeline.prepare_latents()
     # pipeline.unload("vae")
     # pipeline.unload("text_encoder")
     # pipeline.unload("tokenizer")
     # pipeline.mem("after unloading", print_=True)
-    latent = torch.load("checkpoints/gen_latents_step_latest.pt")
-    for i in tqdm(range(latent.shape[0]), desc="Exporting videos"):
-        pipeline.export_video_from_latent(latent[i].unsqueeze(0), f"samples/epoch{i}.mp4")
-        print(f"exported video {i+1}/{latent.shape[0]}")
+    # latent = torch.load("checkpoints/gen_latents_step_latest.pt")
+    # for i in tqdm(range(latent.shape[0]), desc="Exporting videos"):
+    #     pipeline.export_video_from_latent(latent[i].unsqueeze(0), f"samples/epoch{i}.mp4")
+    #     print(f"exported video {i+1}/{latent.shape[0]}")
 
 
 
-    # with open("data/prompt.txt", "r") as f:
-    #     prompt = f.read()
-    # with open("data/negative_prompt.txt", "r") as f:
-    #     negative_prompt = f.read()
+    with open("data/prompt.txt", "r") as f:
+        prompt = f.read()
+    with open("data/negative_prompt.txt", "r") as f:
+        negative_prompt = f.read()
 
     # pipeline.encode_text([prompt], save_path="data/prompt_embed_wan.pt")
     # pipeline.encode_text([negative_prompt], save_path="data/negative_prompt_embed_wan.pt")
 
-    # pipeline.full_pipeline(
-    #     [prompt],
-    #     "wan-pipeline-test-10.mp4",
-    #     negative_prompts=[negative_prompt],
-    #     denoising_steps=10
-    # )
+    pipeline.full_pipeline(
+        [prompt],
+        "wan-pipeline-test-10.mp4",
+        negative_prompts=[negative_prompt],
+        denoising_steps=10
+    )

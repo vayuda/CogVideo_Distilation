@@ -1,4 +1,5 @@
 import copy
+from transformers.models.sam.image_processing_sam import F
 import yaml
 import time
 import wandb
@@ -8,12 +9,14 @@ from tqdm import tqdm
 import torch
 from torch.utils.data import Dataset, DataLoader
 from lightning.fabric import Fabric
+from lightning.fabric.strategies import FSDPStrategy
 import wandb
 from wandb.integration.lightning.fabric import WandbLogger
 from torch.utils.checkpoint import checkpoint_sequential
 
 from diffusers.models import WanTransformer3DModel
-from diffusers.schedulers import FlowMatchEulerDiscreteScheduler
+from diffusers.models.transformers.transformer_wan import WanTransformerBlock
+from diffsynth import FlowMatchScheduler
 from diffusers.training_utils import compute_snr
 from peft import LoraConfig, get_peft_model
 
@@ -54,12 +57,12 @@ class VideoTrainer:
         self.ckpt_save_path = config.get("ckpt_save_path", None)
         self.pipeline_type = config.get("pipeline_type", "t2v") # or i2v
         # Set up scheduler
-        self.scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(config["model"], subfolder="scheduler")
-        self.scheduler.set_timesteps(self.scheduler.config.num_train_timesteps)
+        self.scheduler = FlowMatchScheduler(shift=3.0, sigma_min=0.0, extra_one_step=True)
+        self.scheduler.set_timesteps(num_inference_steps=self.scheduler.num_train_timesteps)
         nt = self.config.get("generator_timesteps", 1)
         self.generator_timesteps = torch.tensor(
-            [int(config.get("generator_one_step_time", 999) * (1-i/nt)) for i in range(nt)],
-            dtype=torch.int32
+            [config.get("generator_one_step_time", 999) * (1.0-i/nt) for i in range(nt)],
+            dtype=torch.float32
         )
 
         # Setup distributed training
@@ -92,7 +95,7 @@ class VideoTrainer:
         self.dit = get_peft_model(self.dit, lora_config)
         self.dit.add_adapter("generator", lora_config) # one step generator
         self.dit.add_adapter("fsm", lora_config) # fake score model
-
+        self.dit.enable_gradient_checkpointing()
         # Retrieve optimizable parameters
         self.dit.set_adapter("generator")
         generator_params = [p for p in self.dit.parameters() if p.requires_grad]
@@ -146,18 +149,19 @@ class VideoTrainer:
         self.batch_iterator = iter(self.dataloader)
         self.dataloader = self.fabric.setup_dataloaders(self.dataloader)
 
-    def mem(self, place, verbose=True):
+    def mem(self, place, verbose=False):
         if self.fabric.is_global_zero and verbose:
             print(f"Mem usage at {place}: {torch.cuda.memory_allocated() / 1024**2}")
 
     def fake_score_loss(self, xg, noise, t, fake_score):
-        if self.scheduler.config.prediction_type == "v_prediction":
-            target = self.scheduler.get_velocity(xg, noise, t)
-            loss = (fake_score-target)**2
-            snr = compute_snr(self.scheduler, t)
-            loss = loss * snr/(snr+1)
-        else:
-            loss = (fake_score-xg)**2
+        loss = (fake_score - xg)**2
+        # if self.scheduler.config.prediction_type == "v_prediction":
+        #     target = self.scheduler.get_velocity(xg, noise, t)
+        #     loss = (fake_score-target)**2
+        #     snr = compute_snr(self.scheduler, t)
+        #     loss = loss * snr/(snr+1)
+        # else:
+        #     loss = (fake_score-xg)**2
 
         loss = loss.mean()
         return loss
@@ -216,17 +220,12 @@ class VideoTrainer:
     def train_step(self, latent):
         total_student_loss = 0
         noise = torch.randn_like(latent)
-        t_index = torch.randint(0, len(self.generator_timesteps), (1,))
-        generator_timestep = self.generator_timesteps[t_index].expand(latent.shape[0]).to(self.device)
-        timesteps = torch.randint(self.tmin, self.tmax, (latent.shape[0],)).to(self.device)
-
         # Generator forward pass
-        self.scheduler.set_timesteps(self.generator_timesteps)
-        noise_pred = self.diffuse("generator", False, latent, self.positive_prompt, generator_timestep)
-        xg = self.scheduler.step(noise_pred, generator_timestep[0], latent, return_dict=False)[0]
-        # print(timesteps.shape, xg.shape)
-        timesteps = timesteps.view(-1, 1, 1, 1, 1)
-        xt = (1-timesteps)*xg.detach() + timesteps * noise
+        xg = self.run_generator(latent, use_cfg=False)
+
+        timesteps = torch.randint(self.tmin, self.tmax, (latent.shape[0],)).to(self.device)
+        timesteps = torch.randint(self.tmin, self.tmax, (latent.shape[0],)).to(self.device)
+        xt = self.scheduler.add_noise(xg.detach(), noise, timesteps.to(torch.float))
 
         # student forward pass and update
         fake_score = self.diffuse(
@@ -246,12 +245,12 @@ class VideoTrainer:
         self.mem("fake score model update")
 
         # update generator
-        noise_pred = self.diffuse("generator", True, latent_model_input, self.positive_prompt, self.generator_timestep)
-        xg = self.scheduler.step(noise_pred, generator_timestep[0], latent, return_dict=False)[0]
-        xt = self.scheduler.add_noise(xg.detach(), noise, timesteps)
+        xg = self.run_generator(latent,train=True, use_cfg=False)
+        timesteps = torch.randint(self.tmin, self.tmax, (latent.shape[0],)).to(self.device)
+        xt = self.scheduler.add_noise(xg.detach(), noise, timesteps.to(torch.float))
         # Teacher forward pass (always in eval mode)
         real_score = self.diffuse(
-            "teacher",
+            "real",
             False,
             torch.cat([xt, xt], dim=0),
             self.cfg_prompt,
@@ -269,18 +268,17 @@ class VideoTrainer:
         )
         generator_loss = self.generator_loss(real_score, fake_score, xg)
         total_generator_loss = generator_loss.detach().item()
-        self.dit.set_adapter("generator")
+        self.dit.set_adaptmer("generator")
         self.generator_optimizer.zero_grad()
         self.fabric.backward(generator_loss)
         self.generator_optimizer.step()
-
         self.global_step += 1
         return total_student_loss, total_generator_loss
 
     def train(self):
         generator_samples = []
         if self.fabric.is_global_zero:
-            generator_samples.append(self.generate_latent())
+            generator_samples.append(self.run_generator())
             torch.save(torch.cat(generator_samples, dim=0),
                 f"{self.ckpt_save_path}/gen_latents_step_latest.pt")
         self.fabric.barrier()
@@ -301,27 +299,37 @@ class VideoTrainer:
             # On epoch end:
             if self.ckpt_save_path is not None and self.fabric.is_global_zero:
                 self.save_checkpoint()
-                generator_samples.append(self.generate_latent())
+                generator_samples.append(self.run_generator())
                 torch.save(torch.cat(generator_samples, dim=0), f"{self.ckpt_save_path}/gen_latents_step_latest.pt")
             self.fabric.barrier()
 
-    def generate_latent(self):
-        latent = torch.randn((1,16,21,60,104)).to(self.device)
-        self.scheduler.set_timesteps(25, device=self.device)
-        with torch.inference_mode():
-            self.dit.set_adapter("generator")
-            for t in tqdm(self.scheduler.timesteps, desc="generating validation video"):
-                timestep = t * torch.ones(latent.shape[0]).to(self.device)
-                latent_model_input = torch.cat([latent] * 2)
+    def run_generator(self,latent=None,train=False, use_cfg=True):
+        self.dit.set_adapter("generator")
+        if latent is None:
+            latent = torch.randn((1,16,21,60,104)).to(self.device)
+        for t in self.generator_timesteps:
+            timestep = t * torch.ones(latent.shape[0]).to(self.device)
+            latent_model_input = torch.cat([latent] * 2) if use_cfg else latent
+            prompt = self.cfg_prompt if use_cfg else self.positive_prompt
+            if not train:
+                with torch.inference_mode():
+                    noise_pred = self.dit(
+                        hidden_states=latent_model_input,
+                        encoder_hidden_states=prompt,
+                        timestep=timestep,
+                        return_dict=False,
+                    )[0]
+            else:
                 noise_pred = self.dit(
                     hidden_states=latent_model_input,
-                    encoder_hidden_states=self.cfg_prompt,
+                    encoder_hidden_states=prompt,
                     timestep=timestep,
                     return_dict=False,
                 )[0]
+            if use_cfg:
                 noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
                 noise_pred = noise_pred_uncond + self.guidance_scale * (noise_pred_text - noise_pred_uncond)
-                latent = self.scheduler.step(noise_pred, t, latent, return_dict=False)[0]
+            latent = self.scheduler.step(noise_pred, t, latent, return_dict=False)
 
         return latent
 
@@ -346,7 +354,13 @@ def main():
         group="multi-gpu",
         config=config
     )
-    fabric = Fabric(loggers=logger, precision="16-mixed", accelerator="cuda", devices=2, strategy="ddp")
+    fabric = Fabric(
+        loggers=logger,
+        precision="bf16-mixed",
+        accelerator="cuda",
+        devices=4,
+        strategy='ddp'
+    )
     fabric.launch()
 
     trainer = VideoTrainer(config, fabric)
