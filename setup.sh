@@ -1,6 +1,6 @@
 # Create new environment (change to your package manager as needed)
-conda create -n cogvideo python=3.12
-conda activate cogvideo
+conda create -n SiDVideo python=3.12
+conda activate SiDVideo
 
 # Install CUDA toolkit first (change to your version as needed)
 conda install -c conda-forge cudatoolkit=12.4

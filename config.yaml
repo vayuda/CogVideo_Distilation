@@ -4,8 +4,8 @@ model: "Wan-AI/Wan2.1-T2V-1.3B-Diffusers"
 # training params
 num_epochs: 10
 gradient_accumulation_steps: 1
-batch_size: 1
-dataset_size: 200
+batch_size: 1 
+dataset_size: 1000
 gradient_clip_val: 1.0
 generator_lr: 0.00001
 fake_score_lr: 0.00001
@@ -16,7 +16,7 @@ lora:
 
 # SID timestep hparams
 generator_timesteps: 1
-generator_one_step_time: 999
+generator_one_step_time: 1000
 tmin: 20
 tmax: 800
 
@@ -31,7 +31,7 @@ num_frames: 81
 
 # saving/logging
 use_wandb: True
-wandb_project: "CogVideoX-SiD-Distillation"
-wandb_run_name: "test-8"
+wandb_project: "Wan-SiD-Distillation"
+wandb_run_name: "debug-1"
 wandb_entity: "SiD_pawan"
-ckpt_save_path: "checkpoints/"
+ckpt_save_path: "checkpoints"

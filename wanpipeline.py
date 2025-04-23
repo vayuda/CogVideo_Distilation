@@ -33,8 +33,8 @@ class WanPipeline():
         self.vae = AutoencoderKLWan.from_pretrained(hf_name, subfolder="vae", torch_dtype=pipe_dtype).to(self.device)
         self.text_encoder = UMT5EncoderModel.from_pretrained(hf_name, subfolder="text_encoder", torch_dtype=pipe_dtype).to(self.device) if load_text_encoder else None
         self.tokenizer = AutoTokenizer.from_pretrained(hf_name, subfolder="tokenizer",)
-        self.scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(hf_name, subfolder="scheduler")
-        # self.scheduler = FlowMatchScheduler(shift=3.0, sigma_min=0.0, extra_one_step=True)
+        # self.scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(hf_name, subfolder="scheduler")
+        self.scheduler = FlowMatchScheduler(shift=3.0, sigma_min=0.0, extra_one_step=True)
         self.mem("init",print_=True)
         self.text_seq_len = 226
 
@@ -120,7 +120,8 @@ class WanPipeline():
 
 
         latent = torch.randn(shape, device=self.device, dtype=self.pipe_dtype)
-        print(latent.shape)
+        # latent = torch.load("data/test_latent.pt", weights_only=True).to(self.device, self.pipe_dtype)
+        # print(latent.shape)
         if save_path is not None:
             torch.save(latent, save_path)
 
@@ -141,7 +142,7 @@ class WanPipeline():
             # self.mem("after inference", print_=True)
         if self.guidance_scale > 1.0:
             noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
-            noise_pred = noise_pred_uncond + self.guidance_scale * (noise_pred_text - noise_pred_uncond)
+            noise_pred = noise_pred_uncond + 5.0 * (noise_pred_text - noise_pred_uncond)
 
         latent = self.scheduler.step(noise_pred, t, latent, return_dict=False)
         if not isinstance(latent, torch.Tensor):
@@ -149,10 +150,14 @@ class WanPipeline():
         return latent
 
     def generate(self, batch_size, prompt_embeds, denoising_steps=50):
+        print("CFG prompt", prompt_embeds.mean(), prompt_embeds.std(), prompt_embeds.min(), prompt_embeds.max())
         latent = self.prepare_latents(batch_size)
+        print(latent.mean(), latent.std(), latent.min(), latent.max())
         self.scheduler.set_timesteps(num_inference_steps=denoising_steps)
+        print(self.scheduler.timesteps)
         for t in tqdm(self.scheduler.timesteps, desc="denoising steps"):
             latent = self.denoise_one_step(latent, prompt_embeds, t)
+            print(latent.mean(), latent.std(), latent.min(), latent.max())
         return latent
 
     def export_video_from_latent(self, latents, video_fp):
@@ -235,18 +240,19 @@ def run_diffusers():
 if __name__ == "__main__":
     torch.set_grad_enabled(False)
     # run_diffusers()
-    pipeline = WanPipeline("Wan-AI/Wan2.1-T2V-1.3B-Diffusers", pipe_dtype=torch.float32)
+    pipeline = WanPipeline("Wan-AI/Wan2.1-T2V-1.3B-Diffusers", pipe_dtype=torch.float)
     # pipeline.prepare_latents()
     # pipeline.unload("vae")
     # pipeline.unload("text_encoder")
     # pipeline.unload("tokenizer")
     # pipeline.mem("after unloading", print_=True)
-    # latent = torch.load("checkpoints/gen_latents_step_latest.pt")
-    # for i in tqdm(range(latent.shape[0]), desc="Exporting videos"):
-    #     pipeline.export_video_from_latent(latent[i].unsqueeze(0), f"samples/epoch{i}.mp4")
-    #     print(f"exported video {i+1}/{latent.shape[0]}")
+    latent = torch.load("checkpoints/gen_latents_step_latest.pt")
+    for i in tqdm(range(latent.shape[0]), desc="Exporting videos"):
+        pipeline.export_video_from_latent(latent[i].unsqueeze(0), f"samples/epoch_{i}.mp4")
+        print(f"exported video {i+1}/{latent.shape[0]}")
 
 
+    # pipeline.encode_text([""], save_path="/home/pawan/code-bases/dmd2-wan/data/input_data/prompt_embed_uncond_wan.pt")
 
     with open("data/prompt.txt", "r") as f:
         prompt = f.read()
@@ -256,9 +262,9 @@ if __name__ == "__main__":
     # pipeline.encode_text([prompt], save_path="data/prompt_embed_wan.pt")
     # pipeline.encode_text([negative_prompt], save_path="data/negative_prompt_embed_wan.pt")
 
-    pipeline.full_pipeline(
-        [prompt],
-        "wan-pipeline-test-10.mp4",
-        negative_prompts=[negative_prompt],
-        denoising_steps=10
-    )
+    # pipeline.full_pipeline(
+    #     [prompt],
+    #     "wp-float-10.mp4",
+    #     negative_prompts=[negative_prompt],
+    #     denoising_steps=10
+    # )
