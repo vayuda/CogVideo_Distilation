@@ -1,4 +1,5 @@
 *.mp4
+*.pyc
 wandb/
 lightning_logs/
 checkpoints/
