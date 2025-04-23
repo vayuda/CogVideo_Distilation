@@ -139,7 +139,8 @@ class VideoTrainer:
         self.dataloader = self.fabric.setup_dataloaders(self.dataloader)
 
     def mem(self, place, verbose=False):
-        self.fabric.print(f"Mem usage at {place}: {torch.cuda.memory_allocated() / 1024**2}")
+        if verbose:
+            self.fabric.print(f"Mem usage at {place}: {torch.cuda.memory_allocated() / 1024**2}")
 
     def fake_score_loss(self, xg, noise, t, fake_score):
         xt = self.scheduler.add_noise(xg.detach(), noise, t.to(torch.float))
@@ -182,7 +183,7 @@ class VideoTrainer:
 
     def diffuse(self, model_name, train, latent, prompt, time_step, cfg=False):
         timestep = time_step.repeat(latent.shape[0])
-        self.fabric.print(f"diff-{model_name}l p t: {latent.shape}, {prompt.shape}, {timestep.shape}")
+        # self.fabric.print(f"diff-{model_name}l p t: {latent.shape}, {prompt.shape}, {timestep.shape}")
 
         self.mem(f"before {model_name} fwd")
         if model_name == "generator":
@@ -216,7 +217,7 @@ class VideoTrainer:
         for t in self.inference_scheduler.timesteps:
             latent_model_input = torch.cat([latent] * 2) if self.guidance_scale > 1.0 and use_cfg else latent
             timestep = t.expand(latent_model_input.shape[0]).to(self.device)
-            self.fabric.print(f"l p t: {latent_model_input.shape}, {prompt.shape}, {timestep.shape}")
+            # self.fabric.print(f"l p t: {latent_model_input.shape}, {prompt.shape}, {timestep.shape}")
             with torch.set_grad_enabled(train):
                 noise_pred = self.dit(
                     hidden_states=latent_model_input,
