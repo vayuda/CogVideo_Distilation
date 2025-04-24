@@ -327,12 +327,23 @@ class VideoTrainer:
 
     def save_checkpoint(self):
         checkpoint_dir = f"{self.ckpt_save_path}/checkpoints_latest.ckpt"
-        state = {"model": self.dit}
+        state = {
+            "model": self.dit,
+            "generator_optimizer": self.generator_optimizer,
+            "fsm_optimizer": self.fsm_optimizer,
+            "global_step": self.global_step
+        }
         self.fabric.save(checkpoint_dir, state)
 
     def load_checkpoint(self, path):
-        state = {"model": self.dit}
+        state = {
+            "model": self.dit,
+            "generator_optimizer": self.generator_optimizer,
+            "fsm_optimizer": self.fsm_optimizer,
+            "global_step": self.global_step
+        }
         self.fabric.load(path, state)
+        self.global_step = state["global_step"]
 
 def main():
     torch.set_float32_matmul_precision('high')
@@ -350,7 +361,7 @@ def main():
         precision="bf16-mixed",
         accelerator="cuda",
         devices=4,
-        strategy='fsdp'
+        strategy='ddp'
     )
     fabric.launch()
 

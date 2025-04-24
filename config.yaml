@@ -5,7 +5,7 @@ model: "Wan-AI/Wan2.1-T2V-1.3B-Diffusers"
 num_epochs: 10
 gradient_accumulation_steps: 1
 batch_size: 1 
-dataset_size: 3000
+dataset_size: 8
 gradient_clip_val: 1.0
 generator_lr: 0.00001
 fake_score_lr: 0.00001

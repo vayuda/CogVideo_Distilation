@@ -246,7 +246,7 @@ if __name__ == "__main__":
     # pipeline.unload("text_encoder")
     # pipeline.unload("tokenizer")
     # pipeline.mem("after unloading", print_=True)
-    latent = torch.load("checkpoints/gen_latents_step_latest.pt")
+    latent = torch.load("checkpoints/gen_latents_latest.pt")
     for i in tqdm(range(latent.shape[0]), desc="Exporting videos"):
         pipeline.export_video_from_latent(latent[i].unsqueeze(0), f"samples/epoch_{i}.mp4")
         print(f"exported video {i+1}/{latent.shape[0]}")
