@@ -1,28 +1,31 @@
+# pipeline model paths
 model: "Wan-AI/Wan2.1-T2V-1.3B-Diffusers"
-# model: "THUDM/CogVideoX-2b"
-
+dit_path: "models/Wan2.1-T2V-1.3B/diffusion_pytorch_model.safetensors"
+vae_path: "models/Wan2.1-T2V-1.3B/Wan2.1_VAE.pth"
+encoder_path: "models/Wan2.1-T2V-1.3B/models_t5_umt5-xxl-enc-bf16.pth"
+# checkpoint_path: "checkpoints/debug-1.ckpt"
 # training params
-num_epochs: 10
-gradient_accumulation_steps: 1
-batch_size: 1 
-dataset_size: 8
+n_devices: 4
+num_epochs: 50
+gradient_accumulation_steps: 2
+batch_size: 1
+dataset_size: 200
 gradient_clip_val: 1.0
-generator_lr: 0.00001
-fake_score_lr: 0.00001
+generator_lr: 1e-6
+fake_score_lr: 1e-6
 lora:
     r: 128
     lora_alpha: 64
-    target_modules: ["to_q", "to_k", "to_v"]
+    target_modules: ["to_q","to_k","to_v","to_o"]
 
 # SID timestep hparams
 generator_timesteps: 1
-generator_one_step_time: 1000
 tmin: 20
 tmax: 800
 
 # other hyperparameters
 guidance_scale: 5.0
-
+gradient_checkpointing: True
 # video params
 height: 480
 width: 832
@@ -34,4 +37,4 @@ use_wandb: True
 wandb_project: "Wan-SiD-Distillation"
 wandb_run_name: "debug-1"
 wandb_entity: "SiD_pawan"
-ckpt_save_path: "checkpoints"
+ckpt_directory: "checkpoints"

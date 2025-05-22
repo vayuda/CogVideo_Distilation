@@ -5,3 +5,4 @@ wandb/
 lightning_logs/
 checkpoints/
 samples/
+models/

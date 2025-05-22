@@ -1,60 +1,0 @@
-nohup: ignoring input
-wandb: WARNING This integration is tested and supported for lightning Fabric 2.1.3.
-wandb: WARNING             Please report any issues to https://github.com/wandb/wandb/issues with the tag `lightning-fabric`.
-Using bfloat16 Automatic Mixed Precision (AMP)
-Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/4
-wandb: WARNING This integration is tested and supported for lightning Fabric 2.1.3.
-wandb: WARNING             Please report any issues to https://github.com/wandb/wandb/issues with the tag `lightning-fabric`.
-wandb: WARNING This integration is tested and supported for lightning Fabric 2.1.3.
-wandb: WARNING             Please report any issues to https://github.com/wandb/wandb/issues with the tag `lightning-fabric`.
-wandb: WARNING This integration is tested and supported for lightning Fabric 2.1.3.
-wandb: WARNING             Please report any issues to https://github.com/wandb/wandb/issues with the tag `lightning-fabric`.
-Initializing distributed: GLOBAL_RANK: 3, MEMBER: 4/4
-Initializing distributed: GLOBAL_RANK: 1, MEMBER: 2/4
-Initializing distributed: GLOBAL_RANK: 2, MEMBER: 3/4
-----------------------------------------------------------------------------------------------------
-distributed_backend=nccl
-All distributed processes registered. Starting with 4 processes
-----------------------------------------------------------------------------------------------------
-
-Fetching 2 files:   0%|          | 0/2 [00:00<?, ?it/s]Fetching 2 files: 100%|██████████| 2/2 [00:00<00:00, 9068.77it/s]
-Fetching 2 files:   0%|          | 0/2 [00:00<?, ?it/s]Fetching 2 files: 100%|██████████| 2/2 [00:00<00:00, 2023.30it/s]
-Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00, 33.36it/s]
-Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Fetching 2 files:   0%|          | 0/2 [00:00<?, ?it/s]Fetching 2 files: 100%|██████████| 2/2 [00:00<00:00, 6388.89it/s]
-Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00, 24.15it/s]
-Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00, 17.17it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00, 17.11it/s]
-Fetching 2 files:   0%|          | 0/2 [00:00<?, ?it/s]Fetching 2 files: 100%|██████████| 2/2 [00:00<00:00, 18808.54it/s]
-Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00, 19.64it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00, 19.54it/s]
-wandb: Using wandb-core as the SDK backend.  Please refer to https://wandb.me/wandb-core for more information.
-wandb: Currently logged in as: mengomango to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
-wandb: Tracking run with wandb version 0.19.7
-wandb: Run data is saved locally in ./wandb/run-20250424_002804-b5oryakm
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run debug-1
-wandb: ⭐️ View project at https://wandb.ai/SiD_pawan/Wan-SiD-Distillation
-wandb: 🚀 View run at https://wandb.ai/SiD_pawan/Wan-SiD-Distillation/runs/b5oryakm
-wandb: logging graph, to disable use `wandb.watch(log_graph=False)`
-Found 360 fake score model params that require grad: 270.00MB
-Found 360 generator params that require grad: 270.00MB
-  0%|          | 0/2 [00:00<?, ?it/s] 50%|█████     | 1/2 [00:43<00:43, 43.06s/it]100%|██████████| 2/2 [01:25<00:00, 42.62s/it]100%|██████████| 2/2 [01:25<00:00, 42.73s/it]
-End of epoch 0 generating video ...
-  0%|          | 0/2 [00:00<?, ?it/s] 50%|█████     | 1/2 [00:42<00:42, 42.71s/it]100%|██████████| 2/2 [01:25<00:00, 42.60s/it]100%|██████████| 2/2 [01:25<00:00, 42.69s/it]
-End of epoch 1 generating video ...
-  0%|          | 0/2 [00:00<?, ?it/s] 50%|█████     | 1/2 [00:42<00:42, 42.47s/it]100%|██████████| 2/2 [01:24<00:00, 42.50s/it]100%|██████████| 2/2 [01:25<00:00, 42.57s/it]
-End of epoch 2 generating video ...
-  0%|          | 0/2 [00:00<?, ?it/s] 50%|█████     | 1/2 [00:42<00:42, 42.45s/it]100%|██████████| 2/2 [01:24<00:00, 42.39s/it]100%|██████████| 2/2 [01:25<00:00, 42.51s/it]
-End of epoch 3 generating video ...
-  0%|          | 0/2 [00:00<?, ?it/s] 50%|█████     | 1/2 [00:42<00:42, 42.83s/it]100%|██████████| 2/2 [01:25<00:00, 42.58s/it]100%|██████████| 2/2 [01:25<00:00, 42.71s/it]
-End of epoch 4 generating video ...
-  0%|          | 0/2 [00:00<?, ?it/s] 50%|█████     | 1/2 [00:42<00:42, 42.68s/it]100%|██████████| 2/2 [01:24<00:00, 42.45s/it]100%|██████████| 2/2 [01:25<00:00, 42.55s/it]
-End of epoch 5 generating video ...
-  0%|          | 0/2 [00:00<?, ?it/s] 50%|█████     | 1/2 [00:42<00:42, 42.77s/it]100%|██████████| 2/2 [01:25<00:00, 42.49s/it]100%|██████████| 2/2 [01:25<00:00, 42.61s/it]
-End of epoch 6 generating video ...
-  0%|          | 0/2 [00:00<?, ?it/s] 50%|█████     | 1/2 [00:42<00:42, 42.62s/it]100%|██████████| 2/2 [01:25<00:00, 42.48s/it]100%|██████████| 2/2 [01:25<00:00, 42.57s/it]
-End of epoch 7 generating video ...
-  0%|          | 0/2 [00:00<?, ?it/s] 50%|█████     | 1/2 [00:42<00:42, 42.53s/it]100%|██████████| 2/2 [01:25<00:00, 42.53s/it]100%|██████████| 2/2 [01:25<00:00, 42.65s/it]
-End of epoch 8 generating video ...
-  0%|          | 0/2 [00:00<?, ?it/s] 50%|█████     | 1/2 [00:42<00:42, 42.51s/it]100%|██████████| 2/2 [01:24<00:00, 42.37s/it]100%|██████████| 2/2 [01:24<00:00, 42.48s/it]
-End of epoch 9 generating video ...
-[1;34mwandb[0m: 
-[1;34mwandb[0m: 🚀 View run [33mdebug-1[0m at: [34mhttps://wandb.ai/SiD_pawan/Wan-SiD-Distillation/runs/b5oryakm[0m
